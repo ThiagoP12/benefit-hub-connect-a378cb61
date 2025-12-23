@@ -22,7 +22,6 @@ interface UserWithRole {
   email: string;
   full_name: string;
   role: 'admin' | 'gestor' | 'agente_dp';
-  created_at: string;
 }
 
 type SystemRole = 'admin' | 'gestor' | 'agente_dp';
@@ -87,7 +86,6 @@ export default function Usuarios() {
         email: '',
         full_name: profilesMap.get(role.user_id)?.full_name || 'N/A',
         role: role.role as SystemRole,
-        created_at: role.created_at,
       }));
 
       setUsers(usersWithRoles);

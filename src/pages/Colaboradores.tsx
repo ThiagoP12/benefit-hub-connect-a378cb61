@@ -14,7 +14,7 @@ interface Profile {
   full_name: string;
   cpf: string | null;
   phone: string | null;
-  department: string | null;
+  departamento: string | null;
   unit?: {
     name: string;
   } | null;
@@ -62,7 +62,7 @@ export default function Colaboradores() {
       profile.full_name?.toLowerCase().includes(search.toLowerCase()) ||
       profile.cpf?.includes(search) ||
       profile.phone?.includes(search) ||
-      profile.department?.toLowerCase().includes(search.toLowerCase())
+      profile.departamento?.toLowerCase().includes(search.toLowerCase())
     );
   });
 
@@ -121,10 +121,10 @@ export default function Colaboradores() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-foreground truncate">{profile.full_name}</h3>
-                      {profile.department && (
+                      {profile.departamento && (
                         <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
                           <Briefcase className="h-3 w-3" />
-                          <span className="truncate">{profile.department}</span>
+                          <span className="truncate">{profile.departamento}</span>
                         </div>
                       )}
                       {profile.unit?.name && (
