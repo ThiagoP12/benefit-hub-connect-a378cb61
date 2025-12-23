@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { benefitTypeLabels, statusLabels, BenefitStatus, BenefitType } from '@/types/benefits';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { PaginationControls } from '@/components/ui/pagination-controls';
+import { Calendar } from '@/components/ui/calendar';
 import {
   Select,
   SelectContent,
@@ -20,11 +22,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Search, Eye, Car, Pill, Wrench, Cylinder, BookOpen, Glasses, HelpCircle } from 'lucide-react';
-import { format } from 'date-fns';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Search, Eye, Car, Pill, Wrench, Cylinder, BookOpen, Glasses, HelpCircle, CalendarIcon, X, Filter, RefreshCw } from 'lucide-react';
+import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
+import { DateRange } from 'react-day-picker';
 
 interface BenefitRequest {
   id: string;
@@ -56,16 +65,26 @@ const benefitIcons: Record<BenefitType, React.ComponentType<{ className?: string
 };
 
 export default function Solicitacoes() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [requests, setRequests] = useState<BenefitRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('status') || 'all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     fetchRequests();
   }, []);
+
+  // Sync URL params with status filter
+  useEffect(() => {
+    const urlStatus = searchParams.get('status');
+    if (urlStatus && urlStatus !== statusFilter) {
+      setStatusFilter(urlStatus);
+    }
+  }, [searchParams]);
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -102,16 +121,42 @@ export default function Solicitacoes() {
     }
   };
 
+  const clearFilters = () => {
+    setSearch('');
+    setStatusFilter('all');
+    setTypeFilter('all');
+    setDateRange(undefined);
+    setSearchParams({});
+    setCurrentPage(1);
+  };
+
+  const hasActiveFilters = search || statusFilter !== 'all' || typeFilter !== 'all' || dateRange;
+
   const filteredRequests = requests.filter(request => {
     const matchesSearch = 
       request.protocol.toLowerCase().includes(search.toLowerCase()) ||
       request.profile?.full_name?.toLowerCase().includes(search.toLowerCase()) ||
       request.details?.toLowerCase().includes(search.toLowerCase());
     
-    const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
+    // Handle comma-separated status values from URL
+    let matchesStatus = statusFilter === 'all';
+    if (!matchesStatus) {
+      const statuses = statusFilter.split(',');
+      matchesStatus = statuses.includes(request.status);
+    }
+    
     const matchesType = typeFilter === 'all' || request.benefit_type === typeFilter;
+    
+    // Date range filter
+    let matchesDate = true;
+    if (dateRange?.from) {
+      const requestDate = new Date(request.created_at);
+      const from = startOfDay(dateRange.from);
+      const to = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
+      matchesDate = isWithinInterval(requestDate, { start: from, end: to });
+    }
 
-    return matchesSearch && matchesStatus && matchesType;
+    return matchesSearch && matchesStatus && matchesType && matchesDate;
   });
 
   const totalPages = Math.ceil(filteredRequests.length / ITEMS_PER_PAGE);
@@ -123,49 +168,116 @@ export default function Solicitacoes() {
   return (
     <MainLayout>
       <div className="space-y-4 sm:space-y-6">
-        <div>
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">
-            Solicitações
-          </h1>
-          <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
-            Gerencie todas as solicitações de benefícios
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">
+              Solicitações
+            </h1>
+            <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
+              Gerencie todas as solicitações de benefícios
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={fetchRequests} disabled={loading}>
+              <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
+              Atualizar
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por protocolo, nome ou detalhes..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por protocolo, nome ou detalhes..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={(v) => {
+              setStatusFilter(v);
+              if (v !== 'all') {
+                setSearchParams({ status: v });
+              } else {
+                setSearchParams({});
+              }
+            }}>
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="aberta">Aberto</SelectItem>
+                <SelectItem value="em_analise">Em Análise</SelectItem>
+                <SelectItem value="aprovada">Aprovado</SelectItem>
+                <SelectItem value="concluida">Concluído</SelectItem>
+                <SelectItem value="recusada">Recusado</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue placeholder="Tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os tipos</SelectItem>
+                {Object.entries(benefitTypeLabels).map(([key, label]) => (
+                  <SelectItem key={key} value={key}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full sm:w-[200px] justify-start text-left font-normal",
+                    !dateRange && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateRange?.from ? (
+                    dateRange.to ? (
+                      <>
+                        {format(dateRange.from, "dd/MM", { locale: ptBR })} -{" "}
+                        {format(dateRange.to, "dd/MM", { locale: ptBR })}
+                      </>
+                    ) : (
+                      format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })
+                    )
+                  ) : (
+                    "Período"
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={dateRange?.from}
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={2}
+                  locale={ptBR}
+                />
+              </PopoverContent>
+            </Popover>
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-40">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os status</SelectItem>
-              <SelectItem value="aberta">Aberto</SelectItem>
-              <SelectItem value="em_analise">Em Análise</SelectItem>
-              <SelectItem value="aprovada">Aprovado</SelectItem>
-              <SelectItem value="recusada">Recusado</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-full sm:w-40">
-              <SelectValue placeholder="Tipo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os tipos</SelectItem>
-              {Object.entries(benefitTypeLabels).map(([key, label]) => (
-                <SelectItem key={key} value={key}>{label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          
+          {hasActiveFilters && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                <Filter className="h-3 w-3" />
+                {filteredRequests.length} resultados
+              </span>
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="h-7 text-xs">
+                <X className="h-3 w-3 mr-1" />
+                Limpar filtros
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Table */}
@@ -204,12 +316,12 @@ export default function Solicitacoes() {
                   const Icon = benefitIcons[request.benefit_type] || HelpCircle;
                   return (
                     <TableRow key={request.id} className="animate-fade-in">
-                      <TableCell className="font-medium">{request.protocol}</TableCell>
+                      <TableCell className="font-medium font-mono text-sm">{request.protocol}</TableCell>
                       <TableCell>{request.profile?.full_name || 'N/A'}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Icon className="h-4 w-4 text-muted-foreground" />
-                          {benefitTypeLabels[request.benefit_type]}
+                          <span className="hidden sm:inline">{benefitTypeLabels[request.benefit_type]}</span>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -218,7 +330,7 @@ export default function Solicitacoes() {
                           label={statusLabels[request.status]} 
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
                         {format(new Date(request.created_at), "dd/MM/yyyy", { locale: ptBR })}
                       </TableCell>
                       <TableCell className="text-right">
