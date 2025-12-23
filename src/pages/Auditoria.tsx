@@ -54,20 +54,31 @@ export default function Auditoria() {
   const fetchLogs = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data: logsData, error: logsError } = await supabase
         .from('logs')
-        .select(`
-          *,
-          profile:profiles!logs_user_id_fkey(full_name)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching logs:', error);
+      if (logsError) {
+        console.error('Error fetching logs:', logsError);
         return;
       }
 
-      setLogs(data || []);
+      // Fetch profiles separately
+      const userIds = [...new Set(logsData?.map(l => l.user_id).filter(Boolean) || [])];
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('user_id, full_name')
+        .in('user_id', userIds);
+
+      const profilesMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
+
+      const logsWithProfiles = (logsData || []).map(log => ({
+        ...log,
+        profile: log.user_id ? profilesMap.get(log.user_id) || null : null
+      }));
+
+      setLogs(logsWithProfiles as Log[]);
     } catch (err) {
       console.error('Error:', err);
     } finally {

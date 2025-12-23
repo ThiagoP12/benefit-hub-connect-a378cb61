@@ -70,23 +70,31 @@ export default function Solicitacoes() {
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data: requestsData, error: requestsError } = await supabase
         .from('benefit_requests')
-        .select(`
-          *,
-          profile:profiles!benefit_requests_user_id_fkey(
-            full_name,
-            unit:units(name)
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching requests:', error);
+      if (requestsError) {
+        console.error('Error fetching requests:', requestsError);
         return;
       }
 
-      setRequests(data || []);
+      // Fetch profiles separately
+      const userIds = [...new Set(requestsData?.map(r => r.user_id) || [])];
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, unit:units(name)')
+        .in('user_id', userIds);
+
+      const profilesMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
+
+      const requestsWithProfiles = (requestsData || []).map(req => ({
+        ...req,
+        profile: profilesMap.get(req.user_id) || null
+      }));
+
+      setRequests(requestsWithProfiles as BenefitRequest[]);
     } catch (err) {
       console.error('Error:', err);
     } finally {
