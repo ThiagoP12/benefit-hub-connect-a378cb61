@@ -88,6 +88,8 @@ export default function Dashboard() {
   const [recentRequests, setRecentRequests] = useState<RecentRequest[]>([]);
   const [unitData, setUnitData] = useState<UnitData[]>([]);
   const [allRequestsForExport, setAllRequestsForExport] = useState<any[]>([]);
+  const [units, setUnits] = useState<{ id: string; name: string }[]>([]);
+  const [unitFilter, setUnitFilter] = useState<string>('all');
   
   // Date filter state
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
@@ -97,8 +99,17 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
+    fetchUnits();
+  }, []);
+
+  useEffect(() => {
     fetchDashboardData();
-  }, [dateFilter, customDateRange]);
+  }, [dateFilter, customDateRange, unitFilter]);
+
+  const fetchUnits = async () => {
+    const { data } = await supabase.from('units').select('id, name').order('name');
+    setUnits(data || []);
+  };
 
   const getDateRange = (): { start: Date | null; end: Date | null } => {
     const now = new Date();
@@ -144,7 +155,26 @@ export default function Dashboard() {
       const rawData = data || [];
       setAllRequests(rawData);
       
-      const filteredData = filterByDate(rawData);
+      // First fetch profiles to know unit_id for filtering
+      const allUserIds = [...new Set(rawData.map(r => r.user_id))];
+      
+      const { data: allProfilesData } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, unit_id, unit:units(name)')
+        .in('user_id', allUserIds);
+
+      const profilesMap = new Map(allProfilesData?.map(p => [p.user_id, p]) || []);
+      
+      // Apply date filter first
+      let filteredData = filterByDate(rawData);
+      
+      // Apply unit filter
+      if (unitFilter !== 'all') {
+        filteredData = filteredData.filter(req => {
+          const profile = profilesMap.get(req.user_id);
+          return profile?.unit_id === unitFilter;
+        });
+      }
 
       const total = filteredData.length;
       const todayStart = new Date();
@@ -180,15 +210,7 @@ export default function Dashboard() {
       }));
       setBenefitTypeData(typeData);
 
-      // Fetch ALL profiles to get unit data
-      const allUserIds = [...new Set(filteredData.map(r => r.user_id))];
-      
-      const { data: allProfilesData } = await supabase
-        .from('profiles')
-        .select('user_id, full_name, unit:units(name)')
-        .in('user_id', allUserIds);
-
-      const profilesMap = new Map(allProfilesData?.map(p => [p.user_id, p]) || []);
+      // Calculate unit data for chart (using profilesMap already created above)
 
       // Calculate unit data for chart
       const unitCounts: Record<string, number> = {};
@@ -351,6 +373,21 @@ export default function Dashboard() {
                 <SelectItem value="30days">Últimos 30 dias</SelectItem>
                 <SelectItem value="90days">Últimos 90 dias</SelectItem>
                 <SelectItem value="custom">Personalizado</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Unit Filter */}
+            <Select value={unitFilter} onValueChange={setUnitFilter}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Unidade" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas unidades</SelectItem>
+                {units.map((unit) => (
+                  <SelectItem key={unit.id} value={unit.id}>
+                    {unit.name}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 

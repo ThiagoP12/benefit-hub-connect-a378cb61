@@ -437,7 +437,7 @@ export default function Solicitacoes() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="🔍 Buscar por protocolo, nome, CPF ou telefone..."
+                placeholder="Buscar por protocolo, nome, CPF ou telefone..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9"
@@ -479,10 +479,10 @@ export default function Solicitacoes() {
                 <SelectValue placeholder="Unidade" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">🏢 Todas as unidades</SelectItem>
+                <SelectItem value="all">Unidades</SelectItem>
                 {units.map((unit) => (
                   <SelectItem key={unit.id} value={unit.id}>
-                    {unit.code} - {unit.name}
+                    {unit.name}
                   </SelectItem>
                 ))}
               </SelectContent>
