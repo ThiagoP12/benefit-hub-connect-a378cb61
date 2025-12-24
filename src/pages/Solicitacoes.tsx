@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { PaginationControls } from '@/components/ui/pagination-controls';
 import { Calendar } from '@/components/ui/calendar';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Select,
   SelectContent,
@@ -27,14 +28,30 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Search, Eye, CalendarIcon, X, Filter, RefreshCw } from 'lucide-react';
-import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { Search, Eye, CalendarIcon, X, Filter, RefreshCw, PauseCircle } from 'lucide-react';
+import { format, isWithinInterval, startOfDay, endOfDay, differenceInHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { DateRange } from 'react-day-picker';
 import { BenefitDetailsSheet } from '@/components/benefits/BenefitDetailsSheet';
+
+interface SlaConfig {
+  benefit_type: string;
+  green_hours: number;
+  yellow_hours: number;
+}
+
+interface ApprovalCutoff {
+  day: number;
+}
 
 interface Unit {
   id: string;
@@ -90,10 +107,23 @@ export default function Solicitacoes() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
+  // SLA state
+  const [slaConfigs, setSlaConfigs] = useState<SlaConfig[]>([]);
+  const [cutoffDay, setCutoffDay] = useState(25);
+  const [isBlockPeriod, setIsBlockPeriod] = useState(false);
+
   useEffect(() => {
     fetchRequests();
     fetchUnits();
+    fetchSlaConfigs();
+    fetchCutoffDay();
   }, []);
+
+  // Check block period
+  useEffect(() => {
+    const currentDay = new Date().getDate();
+    setIsBlockPeriod(currentDay >= cutoffDay);
+  }, [cutoffDay]);
 
   // Handle protocol param from URL (e.g., from Dashboard navigation)
   useEffect(() => {
@@ -118,6 +148,26 @@ export default function Solicitacoes() {
       setStatusFilter(urlStatus);
     }
   }, [searchParams]);
+
+  const fetchSlaConfigs = async () => {
+    const { data } = await supabase
+      .from('sla_configs')
+      .select('benefit_type, green_hours, yellow_hours');
+    if (data) setSlaConfigs(data);
+  };
+
+  const fetchCutoffDay = async () => {
+    const { data } = await supabase
+      .from('system_config')
+      .select('value')
+      .eq('key', 'approval_cutoff_day')
+      .maybeSingle();
+    
+    if (data?.value) {
+      const parsed = data.value as unknown as ApprovalCutoff;
+      setCutoffDay(parsed.day || 25);
+    }
+  };
 
   const fetchUnits = async () => {
     const { data } = await supabase
@@ -261,6 +311,37 @@ export default function Solicitacoes() {
     };
   };
 
+  // Get SLA indicator for a request
+  const getSlaIndicator = (request: BenefitRequest) => {
+    // Only show SLA for open/in-progress requests
+    if (request.status === 'aprovada' || request.status === 'recusada') {
+      return null;
+    }
+    
+    // If in block period, show paused indicator
+    if (isBlockPeriod) {
+      return {
+        color: 'text-muted-foreground',
+        icon: '⏸️',
+        label: 'SLA Pausado'
+      };
+    }
+    
+    // Get SLA config for this benefit type
+    const config = slaConfigs.find(c => c.benefit_type === request.benefit_type);
+    if (!config) return null;
+    
+    const hoursElapsed = differenceInHours(new Date(), new Date(request.created_at));
+    
+    if (hoursElapsed <= config.green_hours) {
+      return { color: 'text-success', icon: '🟢', label: `${hoursElapsed}h (verde)` };
+    } else if (hoursElapsed <= config.yellow_hours) {
+      return { color: 'text-warning', icon: '🟡', label: `${hoursElapsed}h (atenção)` };
+    } else {
+      return { color: 'text-destructive', icon: '🔴', label: `${hoursElapsed}h (atrasado)` };
+    }
+  };
+
   return (
     <MainLayout>
       <div className="space-y-4 sm:space-y-6">
@@ -280,6 +361,16 @@ export default function Solicitacoes() {
             </Button>
           </div>
         </div>
+
+        {/* Block Period Alert */}
+        {isBlockPeriod && (
+          <Alert className="border-warning bg-warning/10">
+            <PauseCircle className="h-4 w-4 text-warning" />
+            <AlertDescription className="text-warning">
+              ⚠️ Período de bloqueio ativo (a partir do dia {cutoffDay}). SLA está pausado e aprovações requerem confirmação extra.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Filters */}
         <div className="flex flex-col gap-3">
@@ -400,6 +491,7 @@ export default function Solicitacoes() {
                 <TableHead className="font-semibold">👤 Colaborador</TableHead>
                 <TableHead className="font-semibold">🏢 Unidade</TableHead>
                 <TableHead className="font-semibold">📦 Tipo</TableHead>
+                <TableHead className="font-semibold">⏱️ SLA</TableHead>
                 <TableHead className="font-semibold">📊 Status</TableHead>
                 <TableHead className="text-right font-semibold">⚙️ Ações</TableHead>
               </TableRow>
@@ -413,13 +505,14 @@ export default function Solicitacoes() {
                     <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-12" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-8" /></TableCell>
                   </TableRow>
                 ))
               ) : paginatedRequests.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     😕 Nenhuma solicitação encontrada
                   </TableCell>
                 </TableRow>
@@ -454,6 +547,20 @@ export default function Solicitacoes() {
                         <span className="text-lg">{benefitTypeEmojis[request.benefit_type]}</span>
                         <span className="hidden sm:inline text-sm">{benefitTypeLabels[request.benefit_type]}</span>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-base cursor-help">
+                              {getSlaIndicator(request)?.icon || '—'}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{getSlaIndicator(request)?.label || 'Concluído'}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </TableCell>
                     <TableCell>
                       <StatusBadge 
@@ -496,6 +603,8 @@ export default function Solicitacoes() {
             currentIndex={selectedIndex}
             totalItems={filteredRequests.length}
             onNavigate={handleNavigate}
+            isBlockPeriod={isBlockPeriod}
+            cutoffDay={cutoffDay}
           />
         )}
       </div>
