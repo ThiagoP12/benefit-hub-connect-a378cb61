@@ -199,7 +199,7 @@ export function BenefitDetailsSheet({
       }
 
       const finalStatus: BenefitStatus =
-        status === "aprovada" ? "concluida" : "recusada";
+        status === "aprovada" ? "aprovada" : "recusada";
 
       const parsedValue = parseFloat(approvedValue.replace(',', '.')) || 0;
       const parsedInstallments = parseInt(totalInstallments) || 1;

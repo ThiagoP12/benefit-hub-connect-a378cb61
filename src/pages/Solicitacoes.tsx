@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { benefitTypeLabels, statusLabels, BenefitStatus, BenefitType } from '@/types/benefits';
+import { benefitTypeLabels, benefitTypeEmojis, statusLabels, BenefitStatus, BenefitType } from '@/types/benefits';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -27,13 +27,19 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Search, Eye, Car, Pill, Wrench, Cylinder, BookOpen, Glasses, HelpCircle, CalendarIcon, X, Filter, RefreshCw } from 'lucide-react';
+import { Search, Eye, CalendarIcon, X, Filter, RefreshCw } from 'lucide-react';
 import { format, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { DateRange } from 'react-day-picker';
+
+interface Unit {
+  id: string;
+  name: string;
+  code: string;
+}
 
 interface BenefitRequest {
   id: string;
@@ -46,36 +52,33 @@ interface BenefitRequest {
   created_at: string;
   profile?: {
     full_name: string;
+    cpf: string | null;
+    phone: string | null;
+    unit_id: string | null;
     unit?: {
       name: string;
+      code: string;
     } | null;
   } | null;
 }
 
 const ITEMS_PER_PAGE = 10;
 
-const benefitIcons: Record<BenefitType, React.ComponentType<{ className?: string }>> = {
-  autoescola: Car,
-  farmacia: Pill,
-  oficina: Wrench,
-  vale_gas: Cylinder,
-  papelaria: BookOpen,
-  otica: Glasses,
-  outros: HelpCircle,
-};
-
 export default function Solicitacoes() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [requests, setRequests] = useState<BenefitRequest[]>([]);
+  const [units, setUnits] = useState<Unit[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('status') || 'all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [unitFilter, setUnitFilter] = useState<string>('all');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     fetchRequests();
+    fetchUnits();
   }, []);
 
   // Sync URL params with status filter
@@ -85,6 +88,14 @@ export default function Solicitacoes() {
       setStatusFilter(urlStatus);
     }
   }, [searchParams]);
+
+  const fetchUnits = async () => {
+    const { data } = await supabase
+      .from('units')
+      .select('id, name, code')
+      .order('name');
+    setUnits(data || []);
+  };
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -99,11 +110,11 @@ export default function Solicitacoes() {
         return;
       }
 
-      // Fetch profiles separately
+      // Fetch profiles separately with CPF and phone
       const userIds = [...new Set(requestsData?.map(r => r.user_id) || [])];
       const { data: profilesData } = await supabase
         .from('profiles')
-        .select('user_id, full_name, unit:units(name)')
+        .select('user_id, full_name, cpf, phone, unit_id, unit:units(name, code)')
         .in('user_id', userIds);
 
       const profilesMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
@@ -125,18 +136,24 @@ export default function Solicitacoes() {
     setSearch('');
     setStatusFilter('all');
     setTypeFilter('all');
+    setUnitFilter('all');
     setDateRange(undefined);
     setSearchParams({});
     setCurrentPage(1);
   };
 
-  const hasActiveFilters = search || statusFilter !== 'all' || typeFilter !== 'all' || dateRange;
+  const hasActiveFilters = search || statusFilter !== 'all' || typeFilter !== 'all' || unitFilter !== 'all' || dateRange;
 
   const filteredRequests = requests.filter(request => {
+    const searchLower = search.toLowerCase().replace(/[.-]/g, '');
+    const cpfClean = request.profile?.cpf?.replace(/[.-]/g, '').toLowerCase() || '';
+    const phoneClean = request.profile?.phone?.replace(/[()-\s]/g, '').toLowerCase() || '';
+    
     const matchesSearch = 
-      request.protocol.toLowerCase().includes(search.toLowerCase()) ||
-      request.profile?.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-      request.details?.toLowerCase().includes(search.toLowerCase());
+      request.protocol.toLowerCase().includes(searchLower) ||
+      request.profile?.full_name?.toLowerCase().includes(searchLower) ||
+      cpfClean.includes(searchLower) ||
+      phoneClean.includes(searchLower);
     
     // Handle comma-separated status values from URL
     let matchesStatus = statusFilter === 'all';
@@ -146,6 +163,7 @@ export default function Solicitacoes() {
     }
     
     const matchesType = typeFilter === 'all' || request.benefit_type === typeFilter;
+    const matchesUnit = unitFilter === 'all' || request.profile?.unit_id === unitFilter;
     
     // Date range filter
     let matchesDate = true;
@@ -156,7 +174,7 @@ export default function Solicitacoes() {
       matchesDate = isWithinInterval(requestDate, { start: from, end: to });
     }
 
-    return matchesSearch && matchesStatus && matchesType && matchesDate;
+    return matchesSearch && matchesStatus && matchesType && matchesUnit && matchesDate;
   });
 
   const totalPages = Math.ceil(filteredRequests.length / ITEMS_PER_PAGE);
@@ -170,8 +188,8 @@ export default function Solicitacoes() {
       <div className="space-y-4 sm:space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">
-              Solicitações
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground flex items-center gap-2">
+              📋 Solicitações
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
               Gerencie todas as solicitações de benefícios
@@ -191,7 +209,7 @@ export default function Solicitacoes() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por protocolo, nome ou detalhes..."
+                placeholder="🔍 Buscar por protocolo, nome, CPF ou telefone..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9"
@@ -209,12 +227,11 @@ export default function Solicitacoes() {
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os status</SelectItem>
-                <SelectItem value="aberta">Aberto</SelectItem>
-                <SelectItem value="em_analise">Em Análise</SelectItem>
-                <SelectItem value="aprovada">Aprovado</SelectItem>
-                <SelectItem value="concluida">Concluído</SelectItem>
-                <SelectItem value="recusada">Recusado</SelectItem>
+                <SelectItem value="all">📊 Todos os status</SelectItem>
+                <SelectItem value="aberta">📂 Aberto</SelectItem>
+                <SelectItem value="em_analise">🔍 Em Análise</SelectItem>
+                <SelectItem value="aprovada">✅ Aprovado</SelectItem>
+                <SelectItem value="recusada">❌ Recusado</SelectItem>
               </SelectContent>
             </Select>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
@@ -222,9 +239,24 @@ export default function Solicitacoes() {
                 <SelectValue placeholder="Tipo" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os tipos</SelectItem>
+                <SelectItem value="all">📦 Todos os tipos</SelectItem>
                 {Object.entries(benefitTypeLabels).map(([key, label]) => (
-                  <SelectItem key={key} value={key}>{label}</SelectItem>
+                  <SelectItem key={key} value={key}>
+                    {benefitTypeEmojis[key as BenefitType]} {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={unitFilter} onValueChange={setUnitFilter}>
+              <SelectTrigger className="w-full sm:w-44">
+                <SelectValue placeholder="Unidade" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">🏢 Todas as unidades</SelectItem>
+                {units.map((unit) => (
+                  <SelectItem key={unit.id} value={unit.id}>
+                    {unit.code} - {unit.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -248,7 +280,7 @@ export default function Solicitacoes() {
                       format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })
                     )
                   ) : (
-                    "Período"
+                    "📅 Período"
                   )}
                 </Button>
               </PopoverTrigger>
@@ -281,66 +313,83 @@ export default function Solicitacoes() {
         </div>
 
         {/* Table */}
-        <div className="rounded-lg border bg-card">
+        <div className="rounded-lg border-2 border-primary/10 bg-card overflow-hidden shadow-lg">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Protocolo</TableHead>
-                <TableHead>Colaborador</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+              <TableRow className="bg-muted/50">
+                <TableHead className="font-semibold">📅 Data</TableHead>
+                <TableHead className="font-semibold">🔢 Protocolo</TableHead>
+                <TableHead className="font-semibold">👤 Colaborador</TableHead>
+                <TableHead className="font-semibold">🏢 Unidade</TableHead>
+                <TableHead className="font-semibold">📦 Tipo</TableHead>
+                <TableHead className="font-semibold">📊 Status</TableHead>
+                <TableHead className="text-right font-semibold">⚙️ Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-8" /></TableCell>
                   </TableRow>
                 ))
               ) : paginatedRequests.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                    Nenhuma solicitação encontrada
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    😕 Nenhuma solicitação encontrada
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedRequests.map((request) => {
-                  const Icon = benefitIcons[request.benefit_type] || HelpCircle;
-                  return (
-                    <TableRow key={request.id} className="animate-fade-in">
-                      <TableCell className="font-medium font-mono text-sm">{request.protocol}</TableCell>
-                      <TableCell>{request.profile?.full_name || 'N/A'}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Icon className="h-4 w-4 text-muted-foreground" />
-                          <span className="hidden sm:inline">{benefitTypeLabels[request.benefit_type]}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge 
-                          status={request.status} 
-                          label={statusLabels[request.status]} 
-                        />
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {format(new Date(request.created_at), "dd/MM/yyyy", { locale: ptBR })}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="ghost" size="icon">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
+                paginatedRequests.map((request, index) => (
+                  <TableRow 
+                    key={request.id} 
+                    className={cn(
+                      "animate-fade-in hover:bg-primary/5 transition-colors",
+                      index % 2 === 0 ? "bg-muted/20" : ""
+                    )}
+                  >
+                    <TableCell className="text-sm text-muted-foreground">
+                      {format(new Date(request.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-bold font-mono text-sm text-primary">{request.protocol}</span>
+                    </TableCell>
+                    <TableCell className="font-medium">{request.profile?.full_name || 'N/A'}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {request.profile?.unit ? (
+                        <span className="inline-flex items-center gap-1">
+                          <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">
+                            {request.profile.unit.code}
+                          </span>
+                          <span className="hidden lg:inline">{request.profile.unit.name}</span>
+                        </span>
+                      ) : '-'}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-lg">{benefitTypeEmojis[request.benefit_type]}</span>
+                        <span className="hidden sm:inline text-sm">{benefitTypeLabels[request.benefit_type]}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge 
+                        status={request.status} 
+                        label={statusLabels[request.status]} 
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" className="hover:bg-primary/10">
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>
