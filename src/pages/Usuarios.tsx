@@ -26,6 +26,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { UserFormDialog } from '@/components/usuarios/UserFormDialog';
 import { DeleteUserDialog } from '@/components/usuarios/DeleteUserDialog';
+import { PaginationControls } from '@/components/ui/pagination-controls';
 
 interface UserWithRole {
   id: string;
@@ -60,6 +61,8 @@ export default function Usuarios() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   
   // Dialog states
   const [formDialogOpen, setFormDialogOpen] = useState(false);
@@ -124,6 +127,18 @@ export default function Usuarios() {
     const matchesRole = roleFilter === 'all' || user.role === roleFilter;
     return matchesSearch && matchesRole;
   });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const paginatedUsers = filteredUsers.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, roleFilter]);
 
   // Calculate stats
   const stats = {
@@ -321,7 +336,7 @@ export default function Usuarios() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredUsers.map((user, index) => {
+                paginatedUsers.map((user, index) => {
                   const RoleIcon = roleIcons[user.role];
                   return (
                     <TableRow 
@@ -378,6 +393,18 @@ export default function Usuarios() {
             </TableBody>
           </Table>
         </Card>
+
+        {/* Pagination */}
+        {filteredUsers.length > 0 && (
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredUsers.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+            onItemsPerPageChange={setItemsPerPage}
+          />
+        )}
       </div>
 
       {/* Dialogs */}
