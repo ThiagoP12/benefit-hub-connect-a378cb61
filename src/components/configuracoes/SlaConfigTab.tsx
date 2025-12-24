@@ -4,10 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { BenefitType, benefitTypeLabels, benefitTypeEmojis } from '@/types/benefits';
-import { Clock, Save, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { Clock, Save, CheckCircle, AlertTriangle, XCircle, Calendar, PauseCircle } from 'lucide-react';
 
 interface SlaConfig {
   id: string;
@@ -16,16 +18,42 @@ interface SlaConfig {
   yellow_hours: number;
 }
 
+interface ApprovalCutoff {
+  day: number;
+}
+
 const benefitTypes: BenefitType[] = ['autoescola', 'farmacia', 'oficina', 'vale_gas', 'papelaria', 'otica', 'outros'];
 
 export function SlaConfigTab() {
   const [configs, setConfigs] = useState<SlaConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [cutoffDay, setCutoffDay] = useState(25);
+  const [savingCutoff, setSavingCutoff] = useState(false);
 
   useEffect(() => {
     fetchConfigs();
+    fetchCutoffDay();
   }, []);
+
+  const fetchCutoffDay = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('system_config')
+        .select('value')
+        .eq('key', 'approval_cutoff_day')
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      if (data?.value) {
+        const parsed = data.value as unknown as ApprovalCutoff;
+        setCutoffDay(parsed.day || 25);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dia de corte:', error);
+    }
+  };
 
   const fetchConfigs = async () => {
     try {
@@ -60,6 +88,30 @@ export function SlaConfigTab() {
       setConfigs(defaultConfigs);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveCutoff = async () => {
+    if (cutoffDay < 1 || cutoffDay > 31) {
+      toast.error('O dia deve estar entre 1 e 31');
+      return;
+    }
+    
+    setSavingCutoff(true);
+    try {
+      const { error } = await supabase
+        .from('system_config')
+        .update({ value: { day: cutoffDay }, updated_at: new Date().toISOString() })
+        .eq('key', 'approval_cutoff_day');
+
+      if (error) throw error;
+      
+      toast.success('Dia de corte atualizado com sucesso!');
+    } catch (error) {
+      console.error('Erro ao salvar dia de corte:', error);
+      toast.error('Erro ao salvar dia de corte');
+    } finally {
+      setSavingCutoff(false);
     }
   };
 
@@ -130,8 +182,62 @@ export function SlaConfigTab() {
     );
   }
 
+  const currentDay = new Date().getDate();
+  const isBlockPeriod = currentDay >= cutoffDay;
+
   return (
     <div className="space-y-6">
+      {/* Período de Bloqueio */}
+      <Card className="border-warning/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-warning" />
+            Período de Bloqueio de Aprovações
+          </CardTitle>
+          <CardDescription>
+            A partir deste dia, o SLA será pausado e aprovações requerem confirmação extra
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-end gap-4">
+            <div className="space-y-2 flex-1 max-w-[200px]">
+              <Label htmlFor="cutoff-day" className="flex items-center gap-2">
+                <PauseCircle className="h-4 w-4 text-warning" />
+                Dia de corte (mensal)
+              </Label>
+              <Input
+                id="cutoff-day"
+                type="number"
+                min={1}
+                max={31}
+                value={cutoffDay}
+                onChange={(e) => setCutoffDay(Number(e.target.value))}
+              />
+            </div>
+            <Button onClick={handleSaveCutoff} disabled={savingCutoff} variant="outline">
+              <Save className="h-4 w-4 mr-2" />
+              {savingCutoff ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </div>
+          
+          {isBlockPeriod && (
+            <Alert className="border-warning bg-warning/10">
+              <PauseCircle className="h-4 w-4 text-warning" />
+              <AlertDescription className="text-warning">
+                ⚠️ Período de bloqueio ativo (dia {currentDay}). SLA está pausado e aprovações requerem confirmação.
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          <p className="text-sm text-muted-foreground">
+            A partir do dia <strong>{cutoffDay}</strong> de cada mês, o indicador de SLA será pausado 
+            e as aprovações exigirão uma confirmação adicional do gestor.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Separator />
+
       {/* Info Card */}
       <Card>
         <CardHeader>
@@ -156,6 +262,10 @@ export function SlaConfigTab() {
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded-full bg-destructive" />
               <span className="text-sm">Vermelho: Prazo vencido</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <PauseCircle className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm">Pausado: Período de bloqueio</span>
             </div>
           </div>
         </CardContent>

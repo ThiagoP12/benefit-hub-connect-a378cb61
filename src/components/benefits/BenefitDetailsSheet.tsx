@@ -13,6 +13,17 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -32,6 +43,7 @@ import {
   ExternalLink,
   MessageSquare,
   Clock,
+  AlertTriangle,
 } from "lucide-react";
 import { benefitTypeLabels, type BenefitStatus } from "@/types/benefits";
 import { formatCpf, cn } from "@/lib/utils";
@@ -69,6 +81,8 @@ interface BenefitDetailsSheetProps {
   currentIndex?: number;
   totalItems?: number;
   onNavigate?: (direction: "prev" | "next") => void;
+  isBlockPeriod?: boolean;
+  cutoffDay?: number;
 }
 
 export function BenefitDetailsSheet({
@@ -79,6 +93,8 @@ export function BenefitDetailsSheet({
   currentIndex = 0,
   totalItems = 1,
   onNavigate,
+  isBlockPeriod = false,
+  cutoffDay = 25,
 }: BenefitDetailsSheetProps) {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<BenefitStatus>(request.status);
@@ -90,6 +106,7 @@ export function BenefitDetailsSheet({
   const [totalInstallments, setTotalInstallments] = useState("1");
   const [activeTab, setActiveTab] = useState("details");
   const [directMessage, setDirectMessage] = useState("");
+  const [showBlockConfirm, setShowBlockConfirm] = useState(false);
 
   useEffect(() => {
     setStatus(request.status);
@@ -101,6 +118,7 @@ export function BenefitDetailsSheet({
     setTotalInstallments("1");
     setActiveTab("details");
     setDirectMessage("");
+    setShowBlockConfirm(false);
   }, [request.id, request.status, request.rejection_reason, request.closing_message, request.pdf_url]);
 
   const handleApprove = () => {
@@ -178,7 +196,17 @@ export function BenefitDetailsSheet({
     }
   };
 
+  // Handler for send button - checks block period
+  const handleSendClick = () => {
+    if (isBlockPeriod && status === "aprovada") {
+      setShowBlockConfirm(true);
+    } else {
+      handleSend();
+    }
+  };
+
   const handleSend = async () => {
+    setShowBlockConfirm(false);
     setLoading(true);
     try {
       if (status === "aprovada" && !pdfUrl) {
@@ -487,6 +515,16 @@ export function BenefitDetailsSheet({
                     <div className="space-y-4">
                       <h4 className="text-sm font-medium text-muted-foreground">Ações</h4>
 
+                      {/* Block Period Alert */}
+                      {isBlockPeriod && (
+                        <Alert className="border-warning bg-warning/10">
+                          <AlertTriangle className="h-4 w-4 text-warning" />
+                          <AlertDescription className="text-warning text-sm">
+                            ⚠️ Período de bloqueio ativo (após dia {cutoffDay}). Aprovações requerem confirmação adicional.
+                          </AlertDescription>
+                        </Alert>
+                      )}
+
                       {/* Botões de ação */}
                       <div className="flex gap-3">
                         <Button
@@ -727,9 +765,14 @@ export function BenefitDetailsSheet({
 
         {/* Footer fixo com botão de enviar */}
         {(isApproved || isRejected) && !isClosed && (
-          <div className="p-6 pt-4 border-t border-border">
+          <div className="p-6 pt-4 border-t border-border space-y-3">
+            {isBlockPeriod && isApproved && (
+              <p className="text-xs text-warning text-center">
+                ⚠️ Você está aprovando durante o período de bloqueio
+              </p>
+            )}
             <Button
-              onClick={handleSend}
+              onClick={handleSendClick}
               disabled={loading}
               className="w-full"
               size="lg"
@@ -739,6 +782,30 @@ export function BenefitDetailsSheet({
             </Button>
           </div>
         )}
+
+        {/* Block Period Confirmation Dialog */}
+        <AlertDialog open={showBlockConfirm} onOpenChange={setShowBlockConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-warning" />
+                Confirmar Aprovação no Período de Bloqueio
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Você está tentando aprovar uma solicitação durante o período de bloqueio (após o dia {cutoffDay} do mês). 
+                Esta ação é excepcional e será registrada no sistema.
+                <br /><br />
+                Tem certeza que deseja prosseguir com a aprovação?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleSend} className="bg-warning text-warning-foreground hover:bg-warning/90">
+                Confirmar Aprovação
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </SheetContent>
     </Sheet>
   );
