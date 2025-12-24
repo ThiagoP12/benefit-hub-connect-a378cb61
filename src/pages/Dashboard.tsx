@@ -4,7 +4,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { format, startOfMonth, endOfMonth, subMonths, differenceInHours, parseISO, isWithinInterval, startOfDay, endOfDay, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { FileText, Clock, CheckCircle, XCircle, FolderOpen, TrendingUp, Eye, Download, FileSpreadsheet, Calendar, Timer, Percent } from 'lucide-react';
+import { FileText, Clock, CheckCircle, XCircle, FolderOpen, TrendingUp, Eye, Download, FileSpreadsheet, Calendar, Timer, Percent, LayoutDashboard } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { BenefitType, benefitTypeLabels, benefitTypeEmojis, statusLabels } from '@/types/benefits';
 import { benefitTypes } from '@/data/mockData';
@@ -350,8 +350,9 @@ export default function Dashboard() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">
-              📊 Dashboard
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground flex items-center gap-2">
+              <LayoutDashboard className="h-6 w-6 sm:h-7 sm:w-7" />
+              Dashboard
               <span className="hidden sm:inline"> - Revalle Gestão do DP</span>
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
@@ -438,53 +439,53 @@ export default function Dashboard() {
         {/* Stats Grid - 8 KPI Cards */}
         <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 sm:grid-cols-4 lg:grid-cols-8">
           <StatCard
-            title="📋 Total"
+            title="Total"
             value={stats.total}
             icon={FileText}
             onClick={() => navigate('/solicitacoes')}
           />
           <StatCard
-            title="🆕 Hoje"
+            title="Hoje"
             value={stats.today}
             icon={TrendingUp}
             onClick={() => navigate('/solicitacoes')}
           />
           <StatCard
-            title="📂 Aberto"
+            title="Aberto"
             value={stats.abertos}
             icon={FolderOpen}
             variant="info"
             onClick={() => navigate('/solicitacoes?status=aberta')}
           />
           <StatCard
-            title="🔍 Análise"
+            title="Análise"
             value={stats.emAnalise}
             icon={Clock}
             variant="warning"
             onClick={() => navigate('/solicitacoes?status=em_analise')}
           />
           <StatCard
-            title="✅ Aprovadas"
+            title="Aprovadas"
             value={stats.aprovados}
             icon={CheckCircle}
             variant="success"
             onClick={() => navigate('/solicitacoes?status=aprovada')}
           />
           <StatCard
-            title="❌ Reprovadas"
+            title="Reprovadas"
             value={stats.reprovados}
             icon={XCircle}
             variant="destructive"
             onClick={() => navigate('/solicitacoes?status=recusada')}
           />
           <StatCard
-            title="📊 Taxa Aprov."
+            title="Taxa Aprov."
             value={`${stats.approvalRate}%`}
             icon={Percent}
             variant="success"
           />
           <StatCard
-            title="⏱️ Tempo Méd."
+            title="Tempo Méd."
             value={`${stats.avgResponseTime}h`}
             icon={Timer}
             variant="info"
