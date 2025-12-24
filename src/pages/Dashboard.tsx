@@ -4,7 +4,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { format, startOfMonth, endOfMonth, subMonths, differenceInHours, parseISO, isWithinInterval, startOfDay, endOfDay, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { FileText, Clock, CheckCircle, FolderOpen, TrendingUp, Eye, Download, FileSpreadsheet, Calendar, Timer, LayoutDashboard, Building2 } from 'lucide-react';
+import { FileText, Clock, CheckCircle, FolderOpen, TrendingUp, Eye, Download, FileSpreadsheet, Calendar, Timer, LayoutDashboard, Building2, XCircle, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { BenefitType, benefitTypeLabels, benefitTypeEmojis, statusLabels } from '@/types/benefits';
 import { benefitTypes } from '@/data/mockData';
@@ -50,9 +50,19 @@ interface RecentRequest extends RequestData {
   } | null;
 }
 
-interface UnitData {
-  name: string;
-  count: number;
+interface SlaConfig {
+  benefit_type: string;
+  green_hours: number;
+  yellow_hours: number;
+}
+
+interface AlertRequest extends RequestData {
+  profile?: {
+    full_name: string;
+    unit?: { name: string } | null;
+  } | null;
+  hoursOpen: number;
+  slaStatus: 'yellow' | 'red';
 }
 
 type DateFilter = 'all' | '7days' | '30days' | '90days' | 'custom';
@@ -66,16 +76,6 @@ const COLORS = [
   'hsl(187, 85%, 43%)',
 ];
 
-const UNIT_COLORS = [
-  'hsl(217, 91%, 60%)',
-  'hsl(142, 76%, 36%)',
-  'hsl(25, 95%, 53%)',
-  'hsl(280, 65%, 60%)',
-  'hsl(187, 85%, 43%)',
-  'hsl(38, 92%, 50%)',
-  'hsl(0, 84%, 60%)',
-  'hsl(160, 84%, 39%)',
-];
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -86,7 +86,8 @@ export default function Dashboard() {
   const [benefitTypeData, setBenefitTypeData] = useState<{ type: BenefitType; count: number }[]>([]);
   const [allRequests, setAllRequests] = useState<RequestData[]>([]);
   const [recentRequests, setRecentRequests] = useState<RecentRequest[]>([]);
-  const [unitData, setUnitData] = useState<UnitData[]>([]);
+  const [alertRequests, setAlertRequests] = useState<AlertRequest[]>([]);
+  const [slaConfigs, setSlaConfigs] = useState<SlaConfig[]>([]);
   const [allRequestsForExport, setAllRequestsForExport] = useState<any[]>([]);
   const [units, setUnits] = useState<{ id: string; name: string }[]>([]);
   const [unitFilter, setUnitFilter] = useState<string>('all');
@@ -100,11 +101,27 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchUnits();
+    fetchSlaConfigs();
   }, []);
 
   useEffect(() => {
     fetchDashboardData();
-  }, [dateFilter, customDateRange, unitFilter]);
+  }, [dateFilter, customDateRange, unitFilter, slaConfigs]);
+
+  const fetchSlaConfigs = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('sla_configs')
+        .select('benefit_type, green_hours, yellow_hours');
+      
+      if (error) throw error;
+      setSlaConfigs(data || []);
+    } catch (err) {
+      console.error('Error fetching SLA configs:', err);
+      // Default SLA values
+      setSlaConfigs([{ benefit_type: 'default', green_hours: 2, yellow_hours: 6 }]);
+    }
+  };
 
   const fetchUnits = async () => {
     const { data } = await supabase.from('units').select('id, name').order('name');
@@ -210,22 +227,6 @@ export default function Dashboard() {
       }));
       setBenefitTypeData(typeData);
 
-      // Calculate unit data for chart (using profilesMap already created above)
-
-      // Calculate unit data for chart
-      const unitCounts: Record<string, number> = {};
-      filteredData.forEach(req => {
-        const profile = profilesMap.get(req.user_id);
-        const unitName = profile?.unit?.name || 'Sem Unidade';
-        unitCounts[unitName] = (unitCounts[unitName] || 0) + 1;
-      });
-
-      const unitChartData = Object.entries(unitCounts)
-        .map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 8);
-      setUnitData(unitChartData);
-
       // Prepare data for export
       const exportData = filteredData.map(req => {
         const profile = profilesMap.get(req.user_id);
@@ -245,6 +246,41 @@ export default function Dashboard() {
       }));
       
       setRecentRequests(recentWithProfiles);
+
+      // Calculate alert requests (yellow and red SLA)
+      const getSlaForBenefitType = (benefitType: string) => {
+        const config = slaConfigs.find(c => c.benefit_type === benefitType);
+        return config || { green_hours: 2, yellow_hours: 6 };
+      };
+
+      const openRequests = filteredData.filter(r => r.status === 'aberta' || r.status === 'em_analise');
+      const now = new Date();
+      
+      const alertReqs = openRequests
+        .map(req => {
+          const sla = getSlaForBenefitType(req.benefit_type);
+          const hoursOpen = differenceInHours(now, new Date(req.created_at));
+          let slaStatus: 'yellow' | 'red' = 'yellow';
+          
+          if (hoursOpen > sla.yellow_hours) {
+            slaStatus = 'red';
+          }
+          
+          const isAlert = hoursOpen > sla.green_hours;
+          
+          return {
+            ...req,
+            profile: profilesMap.get(req.user_id) || null,
+            hoursOpen,
+            slaStatus,
+            isAlert
+          };
+        })
+        .filter(req => req.isAlert)
+        .sort((a, b) => b.hoursOpen - a.hoursOpen)
+        .slice(0, 10) as AlertRequest[];
+      
+      setAlertRequests(alertReqs);
     } catch (err) {
       console.error('Error in fetchDashboardData:', err);
     }
@@ -437,8 +473,8 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Stats Grid - 8 KPI Cards */}
-        <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        {/* Stats Grid - 7 KPI Cards */}
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 sm:grid-cols-4 lg:grid-cols-7">
           <StatCard
             title="Total"
             value={stats.total}
@@ -471,6 +507,13 @@ export default function Dashboard() {
             icon={CheckCircle}
             variant="success"
             onClick={() => navigate('/solicitacoes?status=aprovada')}
+          />
+          <StatCard
+            title="Reprovadas"
+            value={stats.reprovados}
+            icon={XCircle}
+            variant="destructive"
+            onClick={() => navigate('/solicitacoes?status=recusada')}
           />
           <StatCard
             title="Tempo Méd."
@@ -573,46 +616,67 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Unit Chart */}
-          <Card className="border-2 border-success/10 shadow-lg hover:shadow-xl transition-shadow">
-            <CardHeader className="bg-gradient-to-r from-success/5 to-transparent">
-              <CardTitle className="flex items-center gap-2">
-                🏢 Solicitações por Unidade
-              </CardTitle>
+          {/* Alert Board - SLA Warning */}
+          <Card className="border-2 border-warning/30 shadow-lg hover:shadow-xl transition-shadow">
+            <CardHeader className="bg-gradient-to-r from-warning/10 to-transparent">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-warning" />
+                  Quadro de Avisos - SLA
+                </CardTitle>
+                <span className="text-xs text-muted-foreground">
+                  {alertRequests.length} protocolo(s) em alerta
+                </span>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={unitData} layout="vertical">
-                    <defs>
-                      {UNIT_COLORS.map((color, index) => (
-                        <linearGradient key={`unitGradient-${index}`} id={`unitGradient-${index}`} x1="0" y1="0" x2="1" y2="0">
-                          <stop offset="0%" stopColor={color} stopOpacity={1}/>
-                          <stop offset="100%" stopColor={color} stopOpacity={0.7}/>
-                        </linearGradient>
-                      ))}
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
-                    <XAxis type="number" tick={{ fill: 'hsl(var(--foreground))' }} />
-                    <YAxis 
-                      type="category" 
-                      dataKey="name" 
-                      width={100} 
-                      tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
-                    />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Bar 
-                      dataKey="count" 
-                      name="📊 Solicitações"
-                      radius={[0, 6, 6, 0]}
+              {alertRequests.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                  <CheckCircle className="h-12 w-12 text-success mb-2" />
+                  <p className="font-medium">Nenhum protocolo em atraso</p>
+                  <p className="text-sm">Todos os protocolos estão dentro do SLA</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[280px] overflow-y-auto">
+                  {alertRequests.map((req) => (
+                    <div 
+                      key={req.id}
+                      className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors ${
+                        req.slaStatus === 'red' 
+                          ? 'border-destructive/50 bg-destructive/5' 
+                          : 'border-warning/50 bg-warning/5'
+                      }`}
+                      onClick={() => navigate(`/solicitacoes?protocol=${req.protocol}`)}
                     >
-                      {unitData.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={`url(#unitGradient-${index % UNIT_COLORS.length})`} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-full ${
+                          req.slaStatus === 'red' ? 'bg-destructive/20' : 'bg-warning/20'
+                        }`}>
+                          {req.slaStatus === 'red' ? (
+                            <XCircle className="h-4 w-4 text-destructive" />
+                          ) : (
+                            <AlertTriangle className="h-4 w-4 text-warning" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-mono font-bold text-sm">{req.protocol}</p>
+                          <p className="text-xs text-muted-foreground">{req.profile?.full_name || 'N/A'}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className={`font-bold text-sm ${
+                          req.slaStatus === 'red' ? 'text-destructive' : 'text-warning'
+                        }`}>
+                          {req.hoursOpen}h
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {req.slaStatus === 'red' ? 'Vencido' : 'Atenção'}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
