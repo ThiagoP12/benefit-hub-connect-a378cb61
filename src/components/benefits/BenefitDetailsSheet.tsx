@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -29,9 +30,11 @@ import {
   Calendar,
   FileText,
   ExternalLink,
+  MessageSquare,
+  Clock,
 } from "lucide-react";
 import { benefitTypeLabels, type BenefitStatus } from "@/types/benefits";
-import { formatCpf } from "@/lib/utils";
+import { formatCpf, cn } from "@/lib/utils";
 import { getWhatsAppLink, getRelativeTime } from "@/lib/formatters";
 
 interface BenefitDetailsSheetProps {
@@ -85,6 +88,8 @@ export function BenefitDetailsSheet({
   const [pdfUrl, setPdfUrl] = useState(request.pdf_url);
   const [approvedValue, setApprovedValue] = useState("");
   const [totalInstallments, setTotalInstallments] = useState("1");
+  const [activeTab, setActiveTab] = useState("details");
+  const [directMessage, setDirectMessage] = useState("");
 
   useEffect(() => {
     setStatus(request.status);
@@ -94,6 +99,8 @@ export function BenefitDetailsSheet({
     setPdfFile(null);
     setApprovedValue("");
     setTotalInstallments("1");
+    setActiveTab("details");
+    setDirectMessage("");
   }, [request.id, request.status, request.rejection_reason, request.closing_message, request.pdf_url]);
 
   const handleApprove = () => {
@@ -240,6 +247,52 @@ export function BenefitDetailsSheet({
     }
   };
 
+  const handleSendDirectMessage = async () => {
+    if (!directMessage.trim()) {
+      toast.error("Digite uma mensagem para enviar");
+      return;
+    }
+
+    if (!request.profiles?.phone) {
+      toast.error("Colaborador não possui telefone cadastrado");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Send message via webhook
+      const webhookData = {
+        protocolo: request.protocol,
+        nome_colaborador: request.profiles?.full_name || "N/A",
+        telefone_whatsapp: request.profiles?.phone || "",
+        mensagem: directMessage,
+        tipo: "mensagem_direta",
+        account_id: request.account_id || null,
+        conversation_id: request.conversation_id || null,
+      };
+
+      const response = await fetch("https://n8n.revalle.com.br/webhook/aprovacao", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(webhookData),
+      });
+
+      if (!response.ok) {
+        throw new Error("Erro ao enviar mensagem");
+      }
+
+      toast.success("Mensagem enviada com sucesso!");
+      setDirectMessage("");
+    } catch (error: any) {
+      console.error("Erro ao enviar mensagem:", error);
+      toast.error("Erro ao enviar mensagem: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const isPending = request.status === "aberta" || request.status === "em_analise";
   const isApproved = status === "aprovada";
   const isRejected = status === "recusada";
@@ -290,264 +343,387 @@ export function BenefitDetailsSheet({
           </div>
         </SheetHeader>
 
-        {/* Conteúdo scrollável */}
-        <ScrollArea className="flex-1">
-          <div className="p-6 space-y-6">
-            {/* Status atual */}
-            <div className="flex items-center justify-between">
-              <StatusBadge status={status} label={status === 'aberta' ? 'Aberto' : status === 'em_analise' ? 'Em Análise' : status === 'aprovada' ? 'Aprovado' : status === 'recusada' ? 'Recusado' : 'Concluído'} />
-              <span className="text-xs text-muted-foreground">
-                {getRelativeTime(request.created_at)}
-              </span>
-            </div>
+        {/* Conteúdo scrollável com abas */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+          <div className="px-6 pt-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="details" className="flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Detalhes
+              </TabsTrigger>
+              <TabsTrigger value="communication" className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
+                Comunicação
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-            {/* Informações do colaborador */}
-            <div className="space-y-3">
-              <h4 className="text-sm font-medium text-muted-foreground">Colaborador</h4>
-              <div className="bg-muted/50 rounded-lg p-4 space-y-3">
-                <div className="flex items-center gap-3">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">{request.profiles?.full_name || "N/A"}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <FileText className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">
-                    {request.profiles?.cpf ? formatCpf(request.profiles.cpf) : "CPF não informado"}
+          <ScrollArea className="flex-1">
+            <TabsContent value="details" className="m-0">
+              <div className="p-6 space-y-6">
+                {/* Status atual */}
+                <div className="flex items-center justify-between">
+                  <StatusBadge status={status} label={status === 'aberta' ? 'Aberto' : status === 'em_analise' ? 'Em Análise' : status === 'aprovada' ? 'Aprovado' : status === 'recusada' ? 'Recusado' : 'Concluído'} />
+                  <span className="text-xs text-muted-foreground">
+                    {getRelativeTime(request.created_at)}
                   </span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Building2 className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{request.profiles?.units?.name || "Unidade não informada"}</span>
-                </div>
-                {request.profiles?.phone && (
-                  <div className="flex items-center justify-between">
+
+                {/* Informações do colaborador */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-muted-foreground">Colaborador</h4>
+                  <div className="bg-muted/50 rounded-lg p-4 space-y-3">
                     <div className="flex items-center gap-3">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{request.profiles.phone}</span>
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium">{request.profiles?.full_name || "N/A"}</span>
                     </div>
-                    <a
-                      href={getWhatsAppLink(request.profiles.phone)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-primary hover:underline flex items-center gap-1"
-                    >
-                      Abrir WhatsApp
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
+                    <div className="flex items-center gap-3">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">
+                        {request.profiles?.cpf ? formatCpf(request.profiles.cpf) : "CPF não informado"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Building2 className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">{request.profiles?.units?.name || "Unidade não informada"}</span>
+                    </div>
+                    {request.profiles?.phone && (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Phone className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">{request.profiles.phone}</span>
+                        </div>
+                        <a
+                          href={getWhatsAppLink(request.profiles.phone)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-primary hover:underline flex items-center gap-1"
+                        >
+                          Abrir WhatsApp
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </div>
+                    )}
                   </div>
+                </div>
+
+                <Separator />
+
+                {/* Detalhes do convênio */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-muted-foreground">Convênio</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Tipo</p>
+                      <p className="font-medium">
+                        {benefitTypeLabels[request.benefit_type as keyof typeof benefitTypeLabels]}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Data de Abertura</p>
+                      <p className="font-medium">
+                        {format(new Date(request.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                      </p>
+                    </div>
+                    {request.reviewer_name && (
+                      <div className="col-span-2">
+                        <p className="text-xs text-muted-foreground">Responsável pela Análise</p>
+                        <p className="font-medium text-primary">{request.reviewer_name}</p>
+                        {request.reviewed_at && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            desde {format(new Date(request.reviewed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {request.details && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Descrição</p>
+                      <p className="text-sm bg-muted/50 rounded p-3">{request.details}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Informações de fechamento (se já encerrado) */}
+                {isClosed && (
+                  <>
+                    <Separator />
+                    <div className="space-y-3">
+                      <h4 className="text-sm font-medium text-muted-foreground">Encerramento</h4>
+                      {request.closing_message && (
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Mensagem</p>
+                          <p className="text-sm bg-muted/50 rounded p-3">{request.closing_message}</p>
+                        </div>
+                      )}
+                      {request.rejection_reason && (
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Motivo da rejeição</p>
+                          <p className="text-sm bg-destructive/10 text-destructive rounded p-3">
+                            {request.rejection_reason}
+                          </p>
+                        </div>
+                      )}
+                      {request.pdf_url && (
+                        <a
+                          href={request.pdf_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-sm text-primary hover:underline"
+                        >
+                          <FileUp className="h-4 w-4" />
+                          Ver PDF anexado
+                        </a>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {/* Ações (se pendente) */}
+                {isPending && !isClosed && (
+                  <>
+                    <Separator />
+                    <div className="space-y-4">
+                      <h4 className="text-sm font-medium text-muted-foreground">Ações</h4>
+
+                      {/* Botões de ação */}
+                      <div className="flex gap-3">
+                        <Button
+                          onClick={handleApprove}
+                          className="flex-1"
+                          variant={isApproved ? "default" : "outline"}
+                          disabled={loading}
+                        >
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Aprovar
+                        </Button>
+                        <Button
+                          onClick={handleReject}
+                          className="flex-1"
+                          variant={isRejected ? "destructive" : "outline"}
+                          disabled={loading}
+                        >
+                          <XCircle className="w-4 h-4 mr-2" />
+                          Reprovar
+                        </Button>
+                      </div>
+
+                      {/* Campo de rejeição */}
+                      {isRejected && (
+                        <div className="space-y-2">
+                          <Label htmlFor="rejection-reason">Motivo da Rejeição *</Label>
+                          <Textarea
+                            id="rejection-reason"
+                            value={rejectionReason}
+                            onChange={(e) => setRejectionReason(e.target.value)}
+                            placeholder="Descreva o motivo da rejeição..."
+                            rows={3}
+                          />
+                        </div>
+                      )}
+
+                      {/* Upload de PDF (aprovado) */}
+                      {isApproved && (
+                        <div className="space-y-4">
+                          {/* Valor e Parcelas */}
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-2">
+                              <Label htmlFor="approved-value">Valor Aprovado (R$) *</Label>
+                              <Input
+                                id="approved-value"
+                                type="text"
+                                value={approvedValue}
+                                onChange={(e) => {
+                                  const value = e.target.value.replace(/[^\d,\.]/g, '');
+                                  setApprovedValue(value);
+                                }}
+                                placeholder="0,00"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="installments">Nº de Parcelas</Label>
+                              <Input
+                                id="installments"
+                                type="number"
+                                min="1"
+                                max="60"
+                                value={totalInstallments}
+                                onChange={(e) => setTotalInstallments(e.target.value)}
+                                placeholder="1"
+                              />
+                            </div>
+                          </div>
+
+                          {parseInt(totalInstallments) > 1 && approvedValue && (
+                            <p className="text-xs text-muted-foreground">
+                              Valor por parcela: R$ {(parseFloat(approvedValue.replace(',', '.')) / parseInt(totalInstallments)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </p>
+                          )}
+
+                          {/* Upload PDF */}
+                          <div className="space-y-2">
+                            <Label>Upload de PDF *</Label>
+                            <Button
+                              onClick={() => document.getElementById("pdf-upload")?.click()}
+                              variant="outline"
+                              disabled={loading}
+                              className="w-full"
+                            >
+                              <FileUp className="w-4 h-4 mr-2" />
+                              {pdfFile ? pdfFile.name : pdfUrl ? "Substituir PDF" : "Selecionar PDF"}
+                            </Button>
+                            <input
+                              id="pdf-upload"
+                              type="file"
+                              accept="application/pdf"
+                              onChange={handleFileUpload}
+                              className="hidden"
+                            />
+                            {pdfUrl && (
+                              <a
+                                href={pdfUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-primary hover:underline"
+                              >
+                                Ver PDF atual
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Mensagem ao colaborador */}
+                      {(isApproved || isRejected) && (
+                        <div className="space-y-2">
+                          <Label htmlFor="closing-message">Mensagem ao Colaborador *</Label>
+                          <Textarea
+                            id="closing-message"
+                            value={closingMessage}
+                            onChange={(e) => setClosingMessage(e.target.value)}
+                            placeholder={
+                              isApproved
+                                ? "Seu convênio foi aprovado..."
+                                : "Sua solicitação foi analisada..."
+                            }
+                            rows={3}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
-            </div>
+            </TabsContent>
 
-            <Separator />
+            <TabsContent value="communication" className="m-0">
+              <div className="p-6 space-y-6">
+                {/* Histórico de comunicação */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-muted-foreground">Histórico</h4>
+                  
+                  <div className="space-y-3">
+                    {/* Mensagem de abertura */}
+                    <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        {format(new Date(request.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      </div>
+                      <p className="text-sm">
+                        <span className="font-medium">{request.profiles?.full_name}</span> abriu a solicitação
+                      </p>
+                      {request.details && (
+                        <p className="text-sm text-muted-foreground italic">"{request.details}"</p>
+                      )}
+                    </div>
 
-            {/* Detalhes do convênio */}
-            <div className="space-y-3">
-              <h4 className="text-sm font-medium text-muted-foreground">Convênio</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-muted-foreground">Tipo</p>
-                  <p className="font-medium">
-                    {benefitTypeLabels[request.benefit_type as keyof typeof benefitTypeLabels]}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Data de Abertura</p>
-                  <p className="font-medium">
-                    {format(new Date(request.created_at), "dd/MM/yyyy", { locale: ptBR })}
-                  </p>
-                </div>
-                {request.reviewer_name && (
-                  <div className="col-span-2">
-                    <p className="text-xs text-muted-foreground">Responsável pela Análise</p>
-                    <p className="font-medium text-primary">{request.reviewer_name}</p>
+                    {/* Mensagem de análise (se houver) */}
                     {request.reviewed_at && (
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        desde {format(new Date(request.reviewed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      <div className="bg-primary/10 rounded-lg p-4 space-y-2">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          {format(new Date(request.reviewed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        </div>
+                        <p className="text-sm">
+                          <span className="font-medium">{request.reviewer_name || "Gestor"}</span> assumiu a análise
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Mensagem de fechamento (se houver) */}
+                    {request.closing_message && (
+                      <div className={cn(
+                        "rounded-lg p-4 space-y-2",
+                        request.status === 'aprovada' ? "bg-green-500/10" : "bg-destructive/10"
+                      )}>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          Encerramento
+                        </div>
+                        <p className="text-sm">{request.closing_message}</p>
+                      </div>
+                    )}
+
+                    {!request.closing_message && !request.reviewed_at && (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        Nenhuma interação registrada ainda
                       </p>
                     )}
                   </div>
-                )}
-              </div>
-              {request.details && (
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Descrição</p>
-                  <p className="text-sm bg-muted/50 rounded p-3">{request.details}</p>
                 </div>
-              )}
-            </div>
 
-            {/* Informações de fechamento (se já encerrado) */}
-            {isClosed && (
-              <>
                 <Separator />
+
+                {/* Enviar mensagem direta */}
                 <div className="space-y-3">
-                  <h4 className="text-sm font-medium text-muted-foreground">Encerramento</h4>
-                  {request.closing_message && (
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Mensagem</p>
-                      <p className="text-sm bg-muted/50 rounded p-3">{request.closing_message}</p>
-                    </div>
-                  )}
-                  {request.rejection_reason && (
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">Motivo da rejeição</p>
-                      <p className="text-sm bg-destructive/10 text-destructive rounded p-3">
-                        {request.rejection_reason}
-                      </p>
-                    </div>
-                  )}
-                  {request.pdf_url && (
-                    <a
-                      href={request.pdf_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm text-primary hover:underline"
-                    >
-                      <FileUp className="h-4 w-4" />
-                      Ver PDF anexado
-                    </a>
-                  )}
-                </div>
-              </>
-            )}
-
-            {/* Ações (se pendente) */}
-            {isPending && !isClosed && (
-              <>
-                <Separator />
-                <div className="space-y-4">
-                  <h4 className="text-sm font-medium text-muted-foreground">Ações</h4>
-
-                  {/* Botões de ação */}
-                  <div className="flex gap-3">
-                    <Button
-                      onClick={handleApprove}
-                      className="flex-1"
-                      variant={isApproved ? "default" : "outline"}
-                      disabled={loading}
-                    >
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Aprovar
-                    </Button>
-                    <Button
-                      onClick={handleReject}
-                      className="flex-1"
-                      variant={isRejected ? "destructive" : "outline"}
-                      disabled={loading}
-                    >
-                      <XCircle className="w-4 h-4 mr-2" />
-                      Reprovar
-                    </Button>
-                  </div>
-
-                  {/* Campo de rejeição */}
-                  {isRejected && (
-                    <div className="space-y-2">
-                      <Label htmlFor="rejection-reason">Motivo da Rejeição *</Label>
-                      <Textarea
-                        id="rejection-reason"
-                        value={rejectionReason}
-                        onChange={(e) => setRejectionReason(e.target.value)}
-                        placeholder="Descreva o motivo da rejeição..."
-                        rows={3}
-                      />
-                    </div>
-                  )}
-
-                  {/* Upload de PDF (aprovado) */}
-                  {isApproved && (
-                    <div className="space-y-4">
-                      {/* Valor e Parcelas */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-2">
-                          <Label htmlFor="approved-value">Valor Aprovado (R$) *</Label>
-                          <Input
-                            id="approved-value"
-                            type="text"
-                            value={approvedValue}
-                            onChange={(e) => {
-                              const value = e.target.value.replace(/[^\d,\.]/g, '');
-                              setApprovedValue(value);
-                            }}
-                            placeholder="0,00"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="installments">Nº de Parcelas</Label>
-                          <Input
-                            id="installments"
-                            type="number"
-                            min="1"
-                            max="60"
-                            value={totalInstallments}
-                            onChange={(e) => setTotalInstallments(e.target.value)}
-                            placeholder="1"
-                          />
-                        </div>
-                      </div>
-
-                      {parseInt(totalInstallments) > 1 && approvedValue && (
-                        <p className="text-xs text-muted-foreground">
-                          Valor por parcela: R$ {(parseFloat(approvedValue.replace(',', '.')) / parseInt(totalInstallments)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </p>
-                      )}
-
-                      {/* Upload PDF */}
-                      <div className="space-y-2">
-                        <Label>Upload de PDF *</Label>
+                  <h4 className="text-sm font-medium text-muted-foreground">Enviar Mensagem</h4>
+                  
+                  <div className="space-y-3">
+                    <Textarea
+                      value={directMessage}
+                      onChange={(e) => setDirectMessage(e.target.value)}
+                      placeholder="Digite uma mensagem para enviar ao colaborador via WhatsApp..."
+                      rows={4}
+                    />
+                    
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleSendDirectMessage}
+                        disabled={loading || !directMessage.trim() || !request.profiles?.phone}
+                        className="flex-1"
+                      >
+                        <Send className="w-4 h-4 mr-2" />
+                        {loading ? "Enviando..." : "Enviar via WhatsApp"}
+                      </Button>
+                      
+                      {request.profiles?.phone && (
                         <Button
-                          onClick={() => document.getElementById("pdf-upload")?.click()}
                           variant="outline"
-                          disabled={loading}
-                          className="w-full"
+                          asChild
                         >
-                          <FileUp className="w-4 h-4 mr-2" />
-                          {pdfFile ? pdfFile.name : pdfUrl ? "Substituir PDF" : "Selecionar PDF"}
-                        </Button>
-                        <input
-                          id="pdf-upload"
-                          type="file"
-                          accept="application/pdf"
-                          onChange={handleFileUpload}
-                          className="hidden"
-                        />
-                        {pdfUrl && (
                           <a
-                            href={pdfUrl}
+                            href={getWhatsAppLink(request.profiles.phone, directMessage)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs text-primary hover:underline"
                           >
-                            Ver PDF atual
+                            <ExternalLink className="w-4 h-4" />
                           </a>
-                        )}
-                      </div>
+                        </Button>
+                      )}
                     </div>
-                  )}
 
-                  {/* Mensagem ao colaborador */}
-                  {(isApproved || isRejected) && (
-                    <div className="space-y-2">
-                      <Label htmlFor="closing-message">Mensagem ao Colaborador *</Label>
-                      <Textarea
-                        id="closing-message"
-                        value={closingMessage}
-                        onChange={(e) => setClosingMessage(e.target.value)}
-                        placeholder={
-                          isApproved
-                            ? "Seu convênio foi aprovado..."
-                            : "Sua solicitação foi analisada..."
-                        }
-                        rows={3}
-                      />
-                    </div>
-                  )}
+                    {!request.profiles?.phone && (
+                      <p className="text-xs text-destructive">
+                        ⚠️ Colaborador não possui telefone cadastrado
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </>
-            )}
-          </div>
-        </ScrollArea>
+              </div>
+            </TabsContent>
+          </ScrollArea>
+        </Tabs>
 
         {/* Footer fixo com botão de enviar */}
         {(isApproved || isRejected) && !isClosed && (

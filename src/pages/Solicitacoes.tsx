@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { benefitTypeLabels, benefitTypeEmojis, statusLabels, BenefitStatus, BenefitType } from '@/types/benefits';
@@ -34,6 +34,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { DateRange } from 'react-day-picker';
+import { BenefitDetailsSheet } from '@/components/benefits/BenefitDetailsSheet';
 
 interface Unit {
   id: string;
@@ -49,6 +50,15 @@ interface BenefitRequest {
   status: BenefitStatus;
   details: string | null;
   requested_value: number | null;
+  approved_value: number | null;
+  rejection_reason: string | null;
+  closing_message: string | null;
+  pdf_url: string | null;
+  pdf_file_name: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  account_id: number | null;
+  conversation_id: number | null;
   created_at: string;
   profile?: {
     full_name: string;
@@ -76,10 +86,30 @@ export default function Solicitacoes() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Sheet state
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
   useEffect(() => {
     fetchRequests();
     fetchUnits();
   }, []);
+
+  // Handle protocol param from URL (e.g., from Dashboard navigation)
+  useEffect(() => {
+    const protocolParam = searchParams.get('protocol');
+    if (protocolParam && requests.length > 0) {
+      const index = requests.findIndex(r => r.protocol === protocolParam);
+      if (index !== -1) {
+        setSelectedIndex(index);
+        setSheetOpen(true);
+        // Clear the protocol param after opening
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete('protocol');
+        setSearchParams(newParams);
+      }
+    }
+  }, [searchParams, requests]);
 
   // Sync URL params with status filter
   useEffect(() => {
@@ -182,6 +212,54 @@ export default function Solicitacoes() {
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
+
+  // Get the actual index in the full filtered list for navigation
+  const getFilteredIndex = (pageIndex: number) => {
+    return (currentPage - 1) * ITEMS_PER_PAGE + pageIndex;
+  };
+
+  const handleOpenSheet = (pageIndex: number) => {
+    setSelectedIndex(getFilteredIndex(pageIndex));
+    setSheetOpen(true);
+  };
+
+  const handleNavigate = useCallback((direction: 'prev' | 'next') => {
+    setSelectedIndex(prev => {
+      if (direction === 'prev' && prev > 0) return prev - 1;
+      if (direction === 'next' && prev < filteredRequests.length - 1) return prev + 1;
+      return prev;
+    });
+  }, [filteredRequests.length]);
+
+  const selectedRequest = filteredRequests[selectedIndex];
+
+  // Transform request for BenefitDetailsSheet format
+  const getSheetRequest = () => {
+    if (!selectedRequest) return null;
+    return {
+      id: selectedRequest.id,
+      protocol: selectedRequest.protocol,
+      benefit_type: selectedRequest.benefit_type,
+      status: selectedRequest.status,
+      details: selectedRequest.details,
+      created_at: selectedRequest.created_at,
+      pdf_url: selectedRequest.pdf_url,
+      pdf_file_name: selectedRequest.pdf_file_name,
+      rejection_reason: selectedRequest.rejection_reason,
+      closing_message: selectedRequest.closing_message,
+      account_id: selectedRequest.account_id,
+      conversation_id: selectedRequest.conversation_id,
+      reviewed_by: selectedRequest.reviewed_by,
+      reviewed_at: selectedRequest.reviewed_at,
+      reviewer_name: null, // Would need another query for reviewer name
+      profiles: selectedRequest.profile ? {
+        full_name: selectedRequest.profile.full_name,
+        cpf: selectedRequest.profile.cpf,
+        phone: selectedRequest.profile.phone,
+        units: selectedRequest.profile.unit ? { name: selectedRequest.profile.unit.name } : null
+      } : null
+    };
+  };
 
   return (
     <MainLayout>
@@ -384,7 +462,12 @@ export default function Solicitacoes() {
                       />
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" className="hover:bg-primary/10">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="hover:bg-primary/10"
+                        onClick={() => handleOpenSheet(index)}
+                      >
                         <Eye className="h-4 w-4" />
                       </Button>
                     </TableCell>
@@ -400,6 +483,19 @@ export default function Solicitacoes() {
             currentPage={currentPage}
             totalPages={totalPages}
             onPageChange={setCurrentPage}
+          />
+        )}
+
+        {/* Details Sheet */}
+        {selectedRequest && getSheetRequest() && (
+          <BenefitDetailsSheet
+            open={sheetOpen}
+            onOpenChange={setSheetOpen}
+            request={getSheetRequest()!}
+            onSuccess={fetchRequests}
+            currentIndex={selectedIndex}
+            totalItems={filteredRequests.length}
+            onNavigate={handleNavigate}
           />
         )}
       </div>

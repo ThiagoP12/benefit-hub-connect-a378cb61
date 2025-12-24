@@ -29,10 +29,14 @@ export function unformatPhone(value: string): string {
 /**
  * Gera link do WhatsApp
  */
-export function getWhatsAppLink(phone: string): string {
+export function getWhatsAppLink(phone: string, message?: string): string {
   const numbers = phone.replace(/\D/g, '');
   const phoneWithCountry = numbers.startsWith('55') ? numbers : `55${numbers}`;
-  return `https://wa.me/${phoneWithCountry}`;
+  const baseUrl = `https://wa.me/${phoneWithCountry}`;
+  if (message) {
+    return `${baseUrl}?text=${encodeURIComponent(message)}`;
+  }
+  return baseUrl;
 }
 
 /**
