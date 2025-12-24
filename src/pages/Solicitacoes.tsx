@@ -34,7 +34,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Search, Eye, CalendarIcon, X, Filter, RefreshCw, PauseCircle, Download, FileSpreadsheet, Building2, FileText } from 'lucide-react';
+import { Search, Eye, CalendarIcon, X, Filter, RefreshCw, PauseCircle, Download, FileSpreadsheet, Building2, FileText, CircleDot, Package } from 'lucide-react';
 import { exportToExcel, formatDateForExport, ExportColumn } from '@/lib/exportUtils';
 import { toast } from 'sonner';
 import {
@@ -453,6 +453,7 @@ export default function Solicitacoes() {
               }
             }}>
               <SelectTrigger className="w-full sm:w-40">
+                <CircleDot className="h-4 w-4 mr-2 text-muted-foreground" />
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -464,10 +465,11 @@ export default function Solicitacoes() {
             </Select>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
               <SelectTrigger className="w-full sm:w-40">
+                <Package className="h-4 w-4 mr-2 text-muted-foreground" />
                 <SelectValue placeholder="Tipo" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">📦 Todos os tipos</SelectItem>
+                <SelectItem value="all">Todos os tipos</SelectItem>
                 {Object.entries(benefitTypeLabels).map(([key, label]) => (
                   <SelectItem key={key} value={key}>
                     {benefitTypeEmojis[key as BenefitType]} {label}
@@ -477,7 +479,7 @@ export default function Solicitacoes() {
             </Select>
             <Select value={unitFilter} onValueChange={setUnitFilter}>
               <SelectTrigger className="w-full sm:w-44">
-                <Building2 className="h-4 w-4 mr-2" />
+                <Building2 className="h-4 w-4 mr-2 text-muted-foreground" />
                 <SelectValue placeholder="Unidade" />
               </SelectTrigger>
               <SelectContent>
