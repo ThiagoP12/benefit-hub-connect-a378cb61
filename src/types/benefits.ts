@@ -67,6 +67,16 @@ export const benefitTypeLabels: Record<BenefitType, string> = {
   outros: 'Outros',
 };
 
+export const benefitTypeEmojis: Record<BenefitType, string> = {
+  autoescola: '🚗',
+  farmacia: '💊',
+  oficina: '🔧',
+  vale_gas: '🔥',
+  papelaria: '📚',
+  otica: '👓',
+  outros: '📦',
+};
+
 export const statusLabels: Record<BenefitStatus, string> = {
   aberta: 'Aberto',
   em_analise: 'Em Análise',

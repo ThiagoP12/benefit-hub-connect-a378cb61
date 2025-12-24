@@ -91,7 +91,7 @@ export default function Colaboradores() {
       .from('benefit_requests')
       .select('user_id, approved_value')
       .in('user_id', userIds)
-      .in('status', ['aprovada', 'concluida']);
+      .eq('status', 'aprovada');
 
     const usageByUser: Record<string, number> = {};
     approvedBenefits?.forEach((benefit) => {
