@@ -8,6 +8,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
+import { EditUnitDialog } from '@/components/unidades/EditUnitDialog';
+import { DeleteUnitDialog } from '@/components/unidades/DeleteUnitDialog';
 
 interface UnitWithStats {
   id: string;
@@ -22,6 +24,11 @@ export default function Unidades() {
   const [units, setUnits] = useState<UnitWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  
+  // Dialog states
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedUnit, setSelectedUnit] = useState<UnitWithStats | null>(null);
 
   useEffect(() => {
     fetchUnits();
@@ -30,7 +37,6 @@ export default function Unidades() {
   const fetchUnits = async () => {
     setLoading(true);
     try {
-      // Fetch units
       const { data: unitsData, error: unitsError } = await supabase
         .from('units')
         .select('*')
@@ -42,24 +48,20 @@ export default function Unidades() {
         return;
       }
 
-      // Fetch collaborator counts per unit
       const { data: profilesData } = await supabase
         .from('profiles')
         .select('unit_id');
 
-      // Fetch request counts per unit (via profiles)
       const { data: requestsData } = await supabase
         .from('benefit_requests')
         .select('user_id');
 
-      // Get all profiles with unit_id to map user_id -> unit_id
       const { data: allProfiles } = await supabase
         .from('profiles')
         .select('user_id, unit_id');
 
       const userToUnit = new Map(allProfiles?.map(p => [p.user_id, p.unit_id]) || []);
 
-      // Count collaborators per unit
       const collaboratorCounts = new Map<string, number>();
       profilesData?.forEach(p => {
         if (p.unit_id) {
@@ -67,7 +69,6 @@ export default function Unidades() {
         }
       });
 
-      // Count requests per unit
       const requestCounts = new Map<string, number>();
       requestsData?.forEach(r => {
         const unitId = userToUnit.get(r.user_id);
@@ -97,6 +98,20 @@ export default function Unidades() {
     );
   });
 
+  const handleEdit = (unit: UnitWithStats) => {
+    setSelectedUnit(unit);
+    setEditDialogOpen(true);
+  };
+
+  const handleDelete = (unit: UnitWithStats) => {
+    setSelectedUnit(unit);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleNewUnit = () => {
+    setSelectedUnit(null);
+    setEditDialogOpen(true);
+  };
 
   return (
     <MainLayout>
@@ -111,28 +126,26 @@ export default function Unidades() {
               Gerencie as unidades da empresa
             </p>
           </div>
-          <Button className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70">
+          <Button onClick={handleNewUnit}>
             <Plus className="h-4 w-4 mr-2" />
             Nova Unidade
           </Button>
         </div>
 
-        {/* Search */}
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="🔍 Buscar por nome ou código..."
+            placeholder="Buscar por nome ou código..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
           />
         </div>
 
-        {/* Cards Grid */}
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
-              <Card key={i} className="border-2">
+              <Card key={i} className="border">
                 <CardContent className="p-4 space-y-3">
                   <Skeleton className="h-6 w-16" />
                   <Skeleton className="h-5 w-32" />
@@ -162,10 +175,20 @@ export default function Unidades() {
                       {unit.code}
                     </Badge>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8"
+                        onClick={() => handleEdit(unit)}
+                      >
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                        onClick={() => handleDelete(unit)}
+                      >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -189,7 +212,6 @@ export default function Unidades() {
           </div>
         )}
 
-        {/* Summary Stats */}
         {!loading && filteredUnits.length > 0 && (
           <div className="flex flex-wrap gap-4 p-4 bg-muted/30 rounded-lg border">
             <div className="flex items-center gap-2">
@@ -198,14 +220,14 @@ export default function Unidades() {
               <span className="font-bold text-foreground">{filteredUnits.length} unidades</span>
             </div>
             <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-info" />
+              <Users className="h-5 w-5 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">Colaboradores:</span>
               <span className="font-bold text-foreground">
                 {filteredUnits.reduce((acc, u) => acc + u.collaboratorCount, 0)}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-success" />
+              <FileText className="h-5 w-5 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">Solicitações:</span>
               <span className="font-bold text-foreground">
                 {filteredUnits.reduce((acc, u) => acc + u.requestCount, 0)}
@@ -214,6 +236,20 @@ export default function Unidades() {
           </div>
         )}
       </div>
+
+      <EditUnitDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        unit={selectedUnit}
+        onSuccess={fetchUnits}
+      />
+
+      <DeleteUnitDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        unit={selectedUnit}
+        onSuccess={fetchUnits}
+      />
     </MainLayout>
   );
 }
