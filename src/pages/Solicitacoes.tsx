@@ -34,7 +34,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Search, Eye, CalendarIcon, X, Filter, RefreshCw, PauseCircle, Download, FileSpreadsheet, Building2 } from 'lucide-react';
+import { Search, Eye, CalendarIcon, X, Filter, RefreshCw, PauseCircle, Download, FileSpreadsheet, Building2, FileText } from 'lucide-react';
 import { exportToExcel, formatDateForExport, ExportColumn } from '@/lib/exportUtils';
 import { toast } from 'sonner';
 import {
@@ -389,7 +389,8 @@ export default function Solicitacoes() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground flex items-center gap-2">
-              📋 Solicitações
+              <FileText className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
+              Protocolos
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
               Gerencie todas as solicitações de benefícios
