@@ -35,15 +35,15 @@ interface Log {
 const ITEMS_PER_PAGE = 15;
 
 const actionConfig: Record<string, { label: string; icon: React.ElementType; color: string; bgColor: string }> = {
-  benefit_request_created: { label: '📝 Nova Solicitação', icon: Plus, color: 'text-green-600', bgColor: 'bg-green-100 dark:bg-green-900/30' },
-  benefit_request_status_changed: { label: '🔄 Status Alterado', icon: Clock, color: 'text-blue-600', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
-  benefit_request_deleted: { label: '🗑️ Solicitação Excluída', icon: Trash2, color: 'text-red-600', bgColor: 'bg-red-100 dark:bg-red-900/30' },
-  profile_updated_by_admin: { label: '✏️ Perfil Atualizado', icon: Pencil, color: 'text-orange-600', bgColor: 'bg-orange-100 dark:bg-orange-900/30' },
-  profile_deleted: { label: '🗑️ Perfil Excluído', icon: Trash2, color: 'text-red-600', bgColor: 'bg-red-100 dark:bg-red-900/30' },
-  user_role_assigned: { label: '👑 Permissão Atribuída', icon: User, color: 'text-purple-600', bgColor: 'bg-purple-100 dark:bg-purple-900/30' },
-  user_role_changed: { label: '🔄 Permissão Alterada', icon: User, color: 'text-purple-600', bgColor: 'bg-purple-100 dark:bg-purple-900/30' },
-  user_role_removed: { label: '❌ Permissão Removida', icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-100 dark:bg-red-900/30' },
-  document_deleted: { label: '📄 Documento Excluído', icon: FileText, color: 'text-red-600', bgColor: 'bg-red-100 dark:bg-red-900/30' },
+  benefit_request_created: { label: 'Nova Solicitação', icon: Plus, color: 'text-green-600', bgColor: 'bg-green-100 dark:bg-green-900/30' },
+  benefit_request_status_changed: { label: 'Status Alterado', icon: Clock, color: 'text-blue-600', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
+  benefit_request_deleted: { label: 'Solicitação Excluída', icon: Trash2, color: 'text-red-600', bgColor: 'bg-red-100 dark:bg-red-900/30' },
+  profile_updated_by_admin: { label: 'Perfil Atualizado', icon: Pencil, color: 'text-orange-600', bgColor: 'bg-orange-100 dark:bg-orange-900/30' },
+  profile_deleted: { label: 'Perfil Excluído', icon: Trash2, color: 'text-red-600', bgColor: 'bg-red-100 dark:bg-red-900/30' },
+  user_role_assigned: { label: 'Permissão Atribuída', icon: User, color: 'text-purple-600', bgColor: 'bg-purple-100 dark:bg-purple-900/30' },
+  user_role_changed: { label: 'Permissão Alterada', icon: User, color: 'text-purple-600', bgColor: 'bg-purple-100 dark:bg-purple-900/30' },
+  user_role_removed: { label: 'Permissão Removida', icon: XCircle, color: 'text-red-600', bgColor: 'bg-red-100 dark:bg-red-900/30' },
+  document_deleted: { label: 'Documento Excluído', icon: FileText, color: 'text-red-600', bgColor: 'bg-red-100 dark:bg-red-900/30' },
 };
 
 const entityConfig: Record<string, { label: string; icon: React.ElementType; color: string }> = {
@@ -146,7 +146,7 @@ export default function Auditoria() {
         <div>
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground flex items-center gap-2">
             <ClipboardList className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
-            📋 Auditoria
+            Auditoria
           </h1>
           <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
             Histórico de todas as ações realizadas no sistema

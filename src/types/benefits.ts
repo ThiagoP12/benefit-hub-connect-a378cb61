@@ -71,7 +71,7 @@ export const benefitTypeEmojis: Record<BenefitType, string> = {
   autoescola: '🚗',
   farmacia: '💊',
   oficina: '🔧',
-  vale_gas: '🔥',
+  vale_gas: '⛽',
   papelaria: '📚',
   otica: '👓',
   outros: '📦',
