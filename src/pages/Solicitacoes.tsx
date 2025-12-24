@@ -321,8 +321,8 @@ export default function Solicitacoes() {
     // If in block period, show paused indicator
     if (isBlockPeriod) {
       return {
-        color: 'text-muted-foreground',
-        icon: '⏸️',
+        bgColor: 'bg-muted',
+        text: 'Pausado',
         label: 'SLA Pausado'
       };
     }
@@ -332,13 +332,19 @@ export default function Solicitacoes() {
     if (!config) return null;
     
     const hoursElapsed = differenceInHours(new Date(), new Date(request.created_at));
+    const daysElapsed = Math.floor(hoursElapsed / 24);
+    const remainingHours = hoursElapsed % 24;
+    
+    const timeText = daysElapsed > 0 
+      ? `${daysElapsed}d ${remainingHours}h` 
+      : `${hoursElapsed}h`;
     
     if (hoursElapsed <= config.green_hours) {
-      return { color: 'text-success', icon: '🟢', label: `${hoursElapsed}h (verde)` };
+      return { bgColor: 'bg-green-500', text: timeText, label: `${timeText} (dentro do prazo)` };
     } else if (hoursElapsed <= config.yellow_hours) {
-      return { color: 'text-warning', icon: '🟡', label: `${hoursElapsed}h (atenção)` };
+      return { bgColor: 'bg-yellow-500', text: timeText, label: `${timeText} (atenção)` };
     } else {
-      return { color: 'text-destructive', icon: '🔴', label: `${hoursElapsed}h (atrasado)` };
+      return { bgColor: 'bg-red-500', text: timeText, label: `${timeText} (atrasado)` };
     }
   };
 
@@ -396,11 +402,10 @@ export default function Solicitacoes() {
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">📊 Todos os status</SelectItem>
-                <SelectItem value="aberta">📂 Aberto</SelectItem>
-                <SelectItem value="em_analise">🔍 Em Análise</SelectItem>
-                <SelectItem value="aprovada">✅ Aprovado</SelectItem>
-                <SelectItem value="recusada">❌ Recusado</SelectItem>
+                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="aberta">Abertos</SelectItem>
+                <SelectItem value="em_analise">Em Atendimento</SelectItem>
+                <SelectItem value="aprovada,recusada">Encerrados</SelectItem>
               </SelectContent>
             </Select>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
@@ -532,15 +537,8 @@ export default function Solicitacoes() {
                       <span className="font-bold font-mono text-sm text-primary">{request.protocol}</span>
                     </TableCell>
                     <TableCell className="font-medium">{request.profile?.full_name || 'N/A'}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {request.profile?.unit ? (
-                        <span className="inline-flex items-center gap-1">
-                          <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">
-                            {request.profile.unit.code}
-                          </span>
-                          <span className="hidden lg:inline">{request.profile.unit.name}</span>
-                        </span>
-                      ) : '-'}
+                    <TableCell className="text-sm">
+                      {request.profile?.unit?.name || '-'}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1.5">
@@ -549,18 +547,23 @@ export default function Solicitacoes() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="text-base cursor-help">
-                              {getSlaIndicator(request)?.icon || '—'}
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{getSlaIndicator(request)?.label || 'Concluído'}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      {getSlaIndicator(request) ? (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-2 cursor-help">
+                                <div className={cn("w-2.5 h-2.5 rounded-full", getSlaIndicator(request)?.bgColor)} />
+                                <span className="text-xs font-medium">{getSlaIndicator(request)?.text}</span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{getSlaIndicator(request)?.label}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <StatusBadge 

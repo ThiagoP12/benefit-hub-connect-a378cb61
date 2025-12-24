@@ -97,23 +97,6 @@ export default function Unidades() {
     );
   });
 
-  const CARD_COLORS = [
-    'from-blue-500/10 to-blue-600/5 border-blue-500/20 hover:border-blue-500/40',
-    'from-green-500/10 to-green-600/5 border-green-500/20 hover:border-green-500/40',
-    'from-purple-500/10 to-purple-600/5 border-purple-500/20 hover:border-purple-500/40',
-    'from-orange-500/10 to-orange-600/5 border-orange-500/20 hover:border-orange-500/40',
-    'from-pink-500/10 to-pink-600/5 border-pink-500/20 hover:border-pink-500/40',
-    'from-cyan-500/10 to-cyan-600/5 border-cyan-500/20 hover:border-cyan-500/40',
-  ];
-
-  const BADGE_COLORS = [
-    'bg-blue-500 text-white',
-    'bg-green-500 text-white',
-    'bg-purple-500 text-white',
-    'bg-orange-500 text-white',
-    'bg-pink-500 text-white',
-    'bg-cyan-500 text-white',
-  ];
 
   return (
     <MainLayout>
@@ -122,7 +105,7 @@ export default function Unidades() {
           <div>
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground flex items-center gap-2">
               <Building2 className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
-              🏢 Unidades
+              Unidades
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
               Gerencie as unidades da empresa
@@ -168,18 +151,18 @@ export default function Unidades() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredUnits.map((unit, index) => (
+            {filteredUnits.map((unit) => (
               <Card 
                 key={unit.id} 
-                className={`border-2 bg-gradient-to-br transition-all duration-300 hover:shadow-lg hover:scale-[1.02] cursor-pointer ${CARD_COLORS[index % CARD_COLORS.length]}`}
+                className="border bg-card hover:shadow-md transition-all duration-200"
               >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-3">
-                    <Badge className={`font-mono text-sm px-2.5 py-0.5 ${BADGE_COLORS[index % BADGE_COLORS.length]}`}>
+                    <Badge variant="outline" className="font-mono text-sm">
                       {unit.code}
                     </Badge>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-background/50">
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10">
@@ -190,16 +173,14 @@ export default function Unidades() {
                   
                   <h3 className="font-semibold text-lg mb-4 line-clamp-2">{unit.name}</h3>
                   
-                  <div className="flex items-center gap-4 text-sm">
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                      <Users className="h-4 w-4 text-info" />
-                      <span className="font-medium text-foreground">{unit.collaboratorCount}</span>
-                      <span className="hidden sm:inline">colaboradores</span>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                      <Users className="h-4 w-4" />
+                      <span>{unit.collaboratorCount} colaboradores</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                      <FileText className="h-4 w-4 text-primary" />
-                      <span className="font-medium text-foreground">{unit.requestCount}</span>
-                      <span className="hidden sm:inline">solicitações</span>
+                    <div className="flex items-center gap-1.5">
+                      <FileText className="h-4 w-4" />
+                      <span>{unit.requestCount} solicitações</span>
                     </div>
                   </div>
                 </CardContent>

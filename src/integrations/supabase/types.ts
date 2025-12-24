@@ -436,6 +436,44 @@ export type Database = {
           },
         ]
       }
+      request_messages: {
+        Row: {
+          benefit_request_id: string
+          created_at: string
+          id: string
+          message: string
+          sender_id: string
+          sender_name: string | null
+          sent_via: string | null
+        }
+        Insert: {
+          benefit_request_id: string
+          created_at?: string
+          id?: string
+          message: string
+          sender_id: string
+          sender_name?: string | null
+          sent_via?: string | null
+        }
+        Update: {
+          benefit_request_id?: string
+          created_at?: string
+          id?: string
+          message?: string
+          sender_id?: string
+          sender_name?: string | null
+          sent_via?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "request_messages_benefit_request_id_fkey"
+            columns: ["benefit_request_id"]
+            isOneToOne: false
+            referencedRelation: "benefit_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sla_configs: {
         Row: {
           benefit_type: string
