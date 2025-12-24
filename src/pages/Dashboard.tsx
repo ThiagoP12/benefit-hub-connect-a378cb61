@@ -4,7 +4,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { FileText, Clock, CheckCircle, XCircle, FolderOpen, TrendingUp, Eye } from 'lucide-react';
+import { FileText, Clock, CheckCircle, XCircle, FolderOpen, TrendingUp, Eye, Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { BenefitType, benefitTypeLabels, benefitTypeEmojis, statusLabels } from '@/types/benefits';
 import { benefitTypes } from '@/data/mockData';
@@ -12,6 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
+import { exportToCSV, formatDateTimeForExport } from '@/lib/exportUtils';
+import { toast } from 'sonner';
 
 const filteredBenefitTypes = benefitTypes.filter(t => t !== 'outros') as BenefitType[];
 
@@ -40,6 +42,11 @@ interface RecentRequest extends RequestData {
   } | null;
 }
 
+interface UnitData {
+  name: string;
+  count: number;
+}
+
 const COLORS = [
   'hsl(217, 91%, 60%)',   // Autoescola - blue
   'hsl(160, 84%, 39%)',   // Farmácia - green
@@ -49,12 +56,25 @@ const COLORS = [
   'hsl(187, 85%, 43%)',   // Ótica - cyan
 ];
 
+const UNIT_COLORS = [
+  'hsl(217, 91%, 60%)',
+  'hsl(142, 76%, 36%)',
+  'hsl(25, 95%, 53%)',
+  'hsl(280, 65%, 60%)',
+  'hsl(187, 85%, 43%)',
+  'hsl(38, 92%, 50%)',
+  'hsl(0, 84%, 60%)',
+  'hsl(160, 84%, 39%)',
+];
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats>({ total: 0, today: 0, abertos: 0, emAnalise: 0, aprovados: 0, reprovados: 0 });
   const [benefitTypeData, setBenefitTypeData] = useState<{ type: BenefitType; count: number }[]>([]);
   const [allRequests, setAllRequests] = useState<RequestData[]>([]);
   const [recentRequests, setRecentRequests] = useState<RecentRequest[]>([]);
+  const [unitData, setUnitData] = useState<UnitData[]>([]);
+  const [allRequestsForExport, setAllRequestsForExport] = useState<any[]>([]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -93,17 +113,43 @@ export default function Dashboard() {
       }));
       setBenefitTypeData(typeData);
 
-      // Fetch recent requests with profiles
-      const recentData = filteredData.slice(0, 8);
-      const userIds = [...new Set(recentData.map(r => r.user_id))];
+      // Fetch ALL profiles to get unit data
+      const allUserIds = [...new Set(filteredData.map(r => r.user_id))];
       
-      const { data: profilesData } = await supabase
+      const { data: allProfilesData } = await supabase
         .from('profiles')
         .select('user_id, full_name, unit:units(name)')
-        .in('user_id', userIds);
+        .in('user_id', allUserIds);
 
-      const profilesMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
-      
+      const profilesMap = new Map(allProfilesData?.map(p => [p.user_id, p]) || []);
+
+      // Calculate unit data for chart
+      const unitCounts: Record<string, number> = {};
+      filteredData.forEach(req => {
+        const profile = profilesMap.get(req.user_id);
+        const unitName = profile?.unit?.name || 'Sem Unidade';
+        unitCounts[unitName] = (unitCounts[unitName] || 0) + 1;
+      });
+
+      const unitChartData = Object.entries(unitCounts)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 8); // Top 8 units
+      setUnitData(unitChartData);
+
+      // Prepare data for export
+      const exportData = filteredData.map(req => {
+        const profile = profilesMap.get(req.user_id);
+        return {
+          ...req,
+          collaborator_name: profile?.full_name || 'N/A',
+          unit_name: profile?.unit?.name || 'Sem Unidade'
+        };
+      });
+      setAllRequestsForExport(exportData);
+
+      // Fetch recent requests with profiles
+      const recentData = filteredData.slice(0, 8);
       const recentWithProfiles = recentData.map(req => ({
         ...req,
         profile: profilesMap.get(req.user_id) || null
@@ -113,6 +159,28 @@ export default function Dashboard() {
     } catch (err) {
       console.error('Error in fetchDashboardData:', err);
     }
+  };
+
+  const handleExportCSV = () => {
+    if (allRequestsForExport.length === 0) {
+      toast.error('Não há dados para exportar');
+      return;
+    }
+
+    exportToCSV(
+      allRequestsForExport,
+      [
+        { header: 'Protocolo', accessor: 'protocol' },
+        { header: 'Colaborador', accessor: 'collaborator_name' },
+        { header: 'Unidade', accessor: 'unit_name' },
+        { header: 'Tipo de Benefício', accessor: (item) => benefitTypeLabels[item.benefit_type as BenefitType] || item.benefit_type },
+        { header: 'Status', accessor: (item) => statusLabels[item.status as keyof typeof statusLabels] || item.status },
+        { header: 'Data de Criação', accessor: (item) => formatDateTimeForExport(item.created_at) },
+      ],
+      `solicitacoes_${format(new Date(), 'yyyy-MM-dd')}`
+    );
+
+    toast.success('Arquivo CSV exportado com sucesso!');
   };
 
   const monthlyData = useMemo(() => {
@@ -171,15 +239,21 @@ export default function Dashboard() {
     <MainLayout>
       <div className="space-y-4 sm:space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">
-            📊 Dashboard
-            <span className="hidden sm:inline"> - Revalle Gestão do DP</span>
-          </h1>
-          <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
-            <span className="hidden sm:inline">Acompanhamento em tempo real das solicitações e análises do DP</span>
-            <span className="sm:hidden">Visão geral das solicitações</span>
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">
+              📊 Dashboard
+              <span className="hidden sm:inline"> - Revalle Gestão do DP</span>
+            </h1>
+            <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
+              <span className="hidden sm:inline">Acompanhamento em tempo real das solicitações e análises do DP</span>
+              <span className="sm:hidden">Visão geral das solicitações</span>
+            </p>
+          </div>
+          <Button onClick={handleExportCSV} variant="outline" className="gap-2">
+            <Download className="h-4 w-4" />
+            Exportar CSV
+          </Button>
         </div>
 
         {/* Stats Grid - 6 KPI Cards */}
@@ -314,6 +388,49 @@ export default function Dashboard() {
                       }} 
                     />
                   </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Unit Chart */}
+          <Card className="border-2 border-success/10 shadow-lg hover:shadow-xl transition-shadow">
+            <CardHeader className="bg-gradient-to-r from-success/5 to-transparent">
+              <CardTitle className="flex items-center gap-2">
+                🏢 Solicitações por Unidade
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={unitData} layout="vertical">
+                    <defs>
+                      {UNIT_COLORS.map((color, index) => (
+                        <linearGradient key={`unitGradient-${index}`} id={`unitGradient-${index}`} x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="0%" stopColor={color} stopOpacity={1}/>
+                          <stop offset="100%" stopColor={color} stopOpacity={0.7}/>
+                        </linearGradient>
+                      ))}
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
+                    <XAxis type="number" tick={{ fill: 'hsl(var(--foreground))' }} />
+                    <YAxis 
+                      type="category" 
+                      dataKey="name" 
+                      width={100} 
+                      tick={{ fill: 'hsl(var(--foreground))', fontSize: 12 }}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar 
+                      dataKey="count" 
+                      name="📊 Solicitações"
+                      radius={[0, 6, 6, 0]}
+                    >
+                      {unitData.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={`url(#unitGradient-${index % UNIT_COLORS.length})`} />
+                      ))}
+                    </Bar>
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             </CardContent>
