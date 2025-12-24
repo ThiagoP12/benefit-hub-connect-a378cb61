@@ -34,7 +34,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Search, Eye, CalendarIcon, X, Filter, RefreshCw, PauseCircle, Download, FileSpreadsheet } from 'lucide-react';
+import { Search, Eye, CalendarIcon, X, Filter, RefreshCw, PauseCircle, Download, FileSpreadsheet, Building2 } from 'lucide-react';
 import { exportToExcel, formatDateForExport, ExportColumn } from '@/lib/exportUtils';
 import { toast } from 'sonner';
 import {
@@ -476,10 +476,11 @@ export default function Solicitacoes() {
             </Select>
             <Select value={unitFilter} onValueChange={setUnitFilter}>
               <SelectTrigger className="w-full sm:w-44">
+                <Building2 className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Unidade" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Unidades</SelectItem>
+                <SelectItem value="all">Todas Unidades</SelectItem>
                 {units.map((unit) => (
                   <SelectItem key={unit.id} value={unit.id}>
                     {unit.name}
@@ -507,7 +508,7 @@ export default function Solicitacoes() {
                       format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })
                     )
                   ) : (
-                    "📅 Período"
+                    "Período"
                   )}
                 </Button>
               </PopoverTrigger>

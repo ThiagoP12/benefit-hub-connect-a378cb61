@@ -80,66 +80,66 @@
   }
 
   .dark {
-    --background: 230 25% 12%;
-    --foreground: 0 0% 95%;
+    --background: 222 47% 8%;
+    --foreground: 210 40% 98%;
 
-    --card: 230 20% 15%;
-    --card-foreground: 0 0% 95%;
+    --card: 222 47% 10%;
+    --card-foreground: 210 40% 98%;
 
-    --popover: 230 20% 15%;
-    --popover-foreground: 0 0% 95%;
+    --popover: 222 47% 10%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 267 83% 57%;
+    --primary: 267 83% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 230 15% 20%;
-    --secondary-foreground: 0 0% 95%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 230 15% 20%;
-    --muted-foreground: 240 5% 65%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 55%;
 
-    --accent: 142 76% 36%;
+    --accent: 142 76% 42%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 76% 36%;
+    --success: 142 76% 42%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 230 25% 12%;
+    --warning: 38 92% 55%;
+    --warning-foreground: 222 47% 8%;
 
-    --info: 199 89% 48%;
+    --info: 199 89% 55%;
     --info-foreground: 0 0% 100%;
 
-    --border: 230 15% 20%;
-    --input: 230 15% 20%;
-    --ring: 267 83% 57%;
+    --border: 217 33% 20%;
+    --input: 217 33% 17%;
+    --ring: 267 83% 60%;
 
-    --sidebar-background: 230 25% 18%;
-    --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 267 83% 57%;
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 267 83% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 230 20% 25%;
-    --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 230 20% 22%;
-    --sidebar-ring: 267 83% 57%;
-    --sidebar-muted: 230 15% 60%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 20%;
+    --sidebar-ring: 267 83% 60%;
+    --sidebar-muted: 215 20% 55%;
 
     /* Benefit category colors - dark mode */
-    --benefit-autoescola: 204 70% 25%;
-    --benefit-autoescola-icon: 217 91% 65%;
-    --benefit-farmacia: 138 50% 25%;
-    --benefit-farmacia-icon: 160 84% 45%;
-    --benefit-oficina: 48 70% 25%;
-    --benefit-oficina-icon: 25 95% 60%;
-    --benefit-vale-gas: 33 70% 25%;
-    --benefit-vale-gas-icon: 38 92% 55%;
-    --benefit-papelaria: 269 50% 25%;
-    --benefit-papelaria-icon: 280 65% 70%;
-    --benefit-otica: 183 70% 25%;
-    --benefit-otica-icon: 187 85% 50%;
+    --benefit-autoescola: 217 50% 18%;
+    --benefit-autoescola-icon: 217 91% 70%;
+    --benefit-farmacia: 160 50% 18%;
+    --benefit-farmacia-icon: 160 84% 50%;
+    --benefit-oficina: 25 50% 18%;
+    --benefit-oficina-icon: 25 95% 65%;
+    --benefit-vale-gas: 38 50% 18%;
+    --benefit-vale-gas-icon: 38 92% 60%;
+    --benefit-papelaria: 280 40% 18%;
+    --benefit-papelaria-icon: 280 65% 75%;
+    --benefit-otica: 187 50% 18%;
+    --benefit-otica-icon: 187 85% 55%;
   }
 }
 
