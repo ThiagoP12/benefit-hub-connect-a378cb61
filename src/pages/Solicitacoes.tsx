@@ -34,7 +34,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Search, Eye, CalendarIcon, X, Filter, RefreshCw, PauseCircle } from 'lucide-react';
+import { Search, Eye, CalendarIcon, X, Filter, RefreshCw, PauseCircle, Download, FileSpreadsheet } from 'lucide-react';
+import { exportToExcel, formatDateForExport, ExportColumn } from '@/lib/exportUtils';
+import { toast } from 'sonner';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { format, isWithinInterval, startOfDay, endOfDay, differenceInHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -281,6 +289,33 @@ export default function Solicitacoes() {
     });
   }, [filteredRequests.length]);
 
+  // Export function
+  const handleExport = (format: 'excel' | 'csv') => {
+    const columns: ExportColumn<BenefitRequest>[] = [
+      { header: 'Protocolo', accessor: 'protocol' },
+      { header: 'Data', accessor: (r) => formatDateForExport(r.created_at) },
+      { header: 'Colaborador', accessor: (r) => r.profile?.full_name || '' },
+      { header: 'CPF', accessor: (r) => r.profile?.cpf || '' },
+      { header: 'Telefone', accessor: (r) => r.profile?.phone || '' },
+      { header: 'Unidade', accessor: (r) => r.profile?.unit?.name || '' },
+      { header: 'Tipo', accessor: (r) => benefitTypeLabels[r.benefit_type] },
+      { header: 'Status', accessor: (r) => statusLabels[r.status] },
+      { header: 'Detalhes', accessor: (r) => r.details || '' },
+    ];
+
+    const filename = `solicitacoes_${format === 'excel' ? new Date().toISOString().split('T')[0] : 'export'}`;
+    
+    if (format === 'excel') {
+      exportToExcel(filteredRequests, columns, filename, 'Solicitações');
+      toast.success('Relatório Excel exportado com sucesso');
+    } else {
+      // Use CSV export
+      const { exportToCSV } = require('@/lib/exportUtils');
+      exportToCSV(filteredRequests, columns, filename);
+      toast.success('Relatório CSV exportado com sucesso');
+    }
+  };
+
   const selectedRequest = filteredRequests[selectedIndex];
 
   // Transform request for BenefitDetailsSheet format
@@ -361,6 +396,24 @@ export default function Solicitacoes() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" disabled={loading || filteredRequests.length === 0}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleExport('excel')}>
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Exportar Excel (.xlsx)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExport('csv')}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar CSV
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button variant="outline" size="sm" onClick={fetchRequests} disabled={loading}>
               <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
               Atualizar
