@@ -2,17 +2,21 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { StatCard } from '@/components/dashboard/StatCard';
-import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, subMonths, differenceInHours, parseISO, isWithinInterval, startOfDay, endOfDay, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { FileText, Clock, CheckCircle, XCircle, FolderOpen, TrendingUp, Eye, Download } from 'lucide-react';
+import { FileText, Clock, CheckCircle, XCircle, FolderOpen, TrendingUp, Eye, Download, FileSpreadsheet, Calendar, Timer, Percent } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { BenefitType, benefitTypeLabels, benefitTypeEmojis, statusLabels } from '@/types/benefits';
 import { benefitTypes } from '@/data/mockData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
-import { exportToCSV, formatDateTimeForExport } from '@/lib/exportUtils';
+import { exportToCSV, exportToExcel, formatDateTimeForExport } from '@/lib/exportUtils';
 import { toast } from 'sonner';
 
 const filteredBenefitTypes = benefitTypes.filter(t => t !== 'outros') as BenefitType[];
@@ -24,6 +28,8 @@ interface DashboardStats {
   emAnalise: number;
   aprovados: number;
   reprovados: number;
+  approvalRate: number;
+  avgResponseTime: number;
 }
 
 interface RequestData {
@@ -33,6 +39,8 @@ interface RequestData {
   benefit_type: string;
   user_id: string;
   created_at: string;
+  reviewed_at?: string | null;
+  closed_at?: string | null;
 }
 
 interface RecentRequest extends RequestData {
@@ -47,13 +55,15 @@ interface UnitData {
   count: number;
 }
 
+type DateFilter = 'all' | '7days' | '30days' | '90days' | 'custom';
+
 const COLORS = [
-  'hsl(217, 91%, 60%)',   // Autoescola - blue
-  'hsl(160, 84%, 39%)',   // Farmácia - green
-  'hsl(25, 95%, 53%)',    // Oficina - orange
-  'hsl(38, 92%, 50%)',    // Vale Gás - amber
-  'hsl(280, 65%, 60%)',   // Papelaria - purple
-  'hsl(187, 85%, 43%)',   // Ótica - cyan
+  'hsl(217, 91%, 60%)',
+  'hsl(160, 84%, 39%)',
+  'hsl(25, 95%, 53%)',
+  'hsl(38, 92%, 50%)',
+  'hsl(280, 65%, 60%)',
+  'hsl(187, 85%, 43%)',
 ];
 
 const UNIT_COLORS = [
@@ -69,22 +79,61 @@ const UNIT_COLORS = [
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [stats, setStats] = useState<DashboardStats>({ total: 0, today: 0, abertos: 0, emAnalise: 0, aprovados: 0, reprovados: 0 });
+  const [stats, setStats] = useState<DashboardStats>({ 
+    total: 0, today: 0, abertos: 0, emAnalise: 0, aprovados: 0, reprovados: 0,
+    approvalRate: 0, avgResponseTime: 0
+  });
   const [benefitTypeData, setBenefitTypeData] = useState<{ type: BenefitType; count: number }[]>([]);
   const [allRequests, setAllRequests] = useState<RequestData[]>([]);
   const [recentRequests, setRecentRequests] = useState<RecentRequest[]>([]);
   const [unitData, setUnitData] = useState<UnitData[]>([]);
   const [allRequestsForExport, setAllRequestsForExport] = useState<any[]>([]);
+  
+  // Date filter state
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+  const [customDateRange, setCustomDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined,
+  });
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, [dateFilter, customDateRange]);
+
+  const getDateRange = (): { start: Date | null; end: Date | null } => {
+    const now = new Date();
+    switch (dateFilter) {
+      case '7days':
+        return { start: subDays(now, 7), end: now };
+      case '30days':
+        return { start: subDays(now, 30), end: now };
+      case '90days':
+        return { start: subDays(now, 90), end: now };
+      case 'custom':
+        return { 
+          start: customDateRange.from ? startOfDay(customDateRange.from) : null, 
+          end: customDateRange.to ? endOfDay(customDateRange.to) : null 
+        };
+      default:
+        return { start: null, end: null };
+    }
+  };
+
+  const filterByDate = (data: RequestData[]): RequestData[] => {
+    const { start, end } = getDateRange();
+    if (!start || !end) return data;
+    
+    return data.filter(req => {
+      const reqDate = new Date(req.created_at);
+      return isWithinInterval(reqDate, { start, end });
+    });
+  };
 
   const fetchDashboardData = async () => {
     try {
       const { data, error } = await supabase
         .from('benefit_requests')
-        .select('id, protocol, status, benefit_type, user_id, created_at')
+        .select('id, protocol, status, benefit_type, user_id, created_at, reviewed_at, closed_at')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -92,8 +141,10 @@ export default function Dashboard() {
         return;
       }
 
-      const filteredData = data || [];
-      setAllRequests(filteredData);
+      const rawData = data || [];
+      setAllRequests(rawData);
+      
+      const filteredData = filterByDate(rawData);
 
       const total = filteredData.length;
       const todayStart = new Date();
@@ -105,7 +156,23 @@ export default function Dashboard() {
       const aprovados = filteredData.filter(r => r.status === 'aprovada').length;
       const reprovados = filteredData.filter(r => r.status === 'recusada').length;
 
-      setStats({ total, today, abertos, emAnalise, aprovados, reprovados });
+      // Calculate approval rate
+      const closedRequests = aprovados + reprovados;
+      const approvalRate = closedRequests > 0 ? Math.round((aprovados / closedRequests) * 100) : 0;
+
+      // Calculate average response time (from created to reviewed/closed)
+      const requestsWithResponse = filteredData.filter(r => r.reviewed_at || r.closed_at);
+      let avgResponseTime = 0;
+      if (requestsWithResponse.length > 0) {
+        const totalHours = requestsWithResponse.reduce((sum, req) => {
+          const created = new Date(req.created_at);
+          const responded = new Date(req.reviewed_at || req.closed_at || req.created_at);
+          return sum + differenceInHours(responded, created);
+        }, 0);
+        avgResponseTime = Math.round((totalHours / requestsWithResponse.length) * 10) / 10;
+      }
+
+      setStats({ total, today, abertos, emAnalise, aprovados, reprovados, approvalRate, avgResponseTime });
 
       const typeData = filteredBenefitTypes.map(type => ({
         type,
@@ -134,7 +201,7 @@ export default function Dashboard() {
       const unitChartData = Object.entries(unitCounts)
         .map(([name, count]) => ({ name, count }))
         .sort((a, b) => b.count - a.count)
-        .slice(0, 8); // Top 8 units
+        .slice(0, 8);
       setUnitData(unitChartData);
 
       // Prepare data for export
@@ -161,31 +228,37 @@ export default function Dashboard() {
     }
   };
 
+  const getExportColumns = () => [
+    { header: 'Protocolo', accessor: 'protocol' as const },
+    { header: 'Colaborador', accessor: 'collaborator_name' as const },
+    { header: 'Unidade', accessor: 'unit_name' as const },
+    { header: 'Tipo de Benefício', accessor: (item: any) => benefitTypeLabels[item.benefit_type as BenefitType] || item.benefit_type },
+    { header: 'Status', accessor: (item: any) => statusLabels[item.status as keyof typeof statusLabels] || item.status },
+    { header: 'Data de Criação', accessor: (item: any) => formatDateTimeForExport(item.created_at) },
+  ];
+
   const handleExportCSV = () => {
     if (allRequestsForExport.length === 0) {
       toast.error('Não há dados para exportar');
       return;
     }
-
-    exportToCSV(
-      allRequestsForExport,
-      [
-        { header: 'Protocolo', accessor: 'protocol' },
-        { header: 'Colaborador', accessor: 'collaborator_name' },
-        { header: 'Unidade', accessor: 'unit_name' },
-        { header: 'Tipo de Benefício', accessor: (item) => benefitTypeLabels[item.benefit_type as BenefitType] || item.benefit_type },
-        { header: 'Status', accessor: (item) => statusLabels[item.status as keyof typeof statusLabels] || item.status },
-        { header: 'Data de Criação', accessor: (item) => formatDateTimeForExport(item.created_at) },
-      ],
-      `solicitacoes_${format(new Date(), 'yyyy-MM-dd')}`
-    );
-
+    exportToCSV(allRequestsForExport, getExportColumns(), `solicitacoes_${format(new Date(), 'yyyy-MM-dd')}`);
     toast.success('Arquivo CSV exportado com sucesso!');
+  };
+
+  const handleExportExcel = () => {
+    if (allRequestsForExport.length === 0) {
+      toast.error('Não há dados para exportar');
+      return;
+    }
+    exportToExcel(allRequestsForExport, getExportColumns(), `solicitacoes_${format(new Date(), 'yyyy-MM-dd')}`, 'Solicitações');
+    toast.success('Arquivo Excel exportado com sucesso!');
   };
 
   const monthlyData = useMemo(() => {
     const end = new Date();
     const start = subMonths(end, 5);
+    const filteredData = filterByDate(allRequests);
 
     const months: { month: string; solicitacoes: number; aprovadas: number; recusadas: number }[] = [];
     const currentDate = startOfMonth(start);
@@ -195,7 +268,7 @@ export default function Dashboard() {
       const monthStart = startOfMonth(currentDate);
       const monthEnd = endOfMonth(currentDate);
 
-      const monthRequests = allRequests.filter((req) => {
+      const monthRequests = filteredData.filter((req) => {
         const reqDate = new Date(req.created_at);
         return reqDate >= monthStart && reqDate <= monthEnd;
       });
@@ -211,7 +284,7 @@ export default function Dashboard() {
     }
 
     return months;
-  }, [allRequests]);
+  }, [allRequests, dateFilter, customDateRange]);
 
   const pieData = benefitTypeData.map((item, index) => ({
     name: `${benefitTypeEmojis[item.type]} ${benefitTypeLabels[item.type]}`,
@@ -235,6 +308,20 @@ export default function Dashboard() {
     return null;
   };
 
+  const getDateFilterLabel = () => {
+    switch (dateFilter) {
+      case '7days': return 'Últimos 7 dias';
+      case '30days': return 'Últimos 30 dias';
+      case '90days': return 'Últimos 90 dias';
+      case 'custom': 
+        if (customDateRange.from && customDateRange.to) {
+          return `${format(customDateRange.from, 'dd/MM')} - ${format(customDateRange.to, 'dd/MM')}`;
+        }
+        return 'Período personalizado';
+      default: return 'Todo período';
+    }
+  };
+
   return (
     <MainLayout>
       <div className="space-y-4 sm:space-y-6">
@@ -250,14 +337,69 @@ export default function Dashboard() {
               <span className="sm:hidden">Visão geral das solicitações</span>
             </p>
           </div>
-          <Button onClick={handleExportCSV} variant="outline" className="gap-2">
-            <Download className="h-4 w-4" />
-            Exportar CSV
-          </Button>
+          
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Date Filter */}
+            <Select value={dateFilter} onValueChange={(v) => setDateFilter(v as DateFilter)}>
+              <SelectTrigger className="w-[160px]">
+                <Calendar className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Período" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todo período</SelectItem>
+                <SelectItem value="7days">Últimos 7 dias</SelectItem>
+                <SelectItem value="30days">Últimos 30 dias</SelectItem>
+                <SelectItem value="90days">Últimos 90 dias</SelectItem>
+                <SelectItem value="custom">Personalizado</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {dateFilter === 'custom' && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    {customDateRange.from && customDateRange.to 
+                      ? `${format(customDateRange.from, 'dd/MM')} - ${format(customDateRange.to, 'dd/MM')}`
+                      : 'Selecionar datas'
+                    }
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <CalendarComponent
+                    mode="range"
+                    selected={{ from: customDateRange.from, to: customDateRange.to }}
+                    onSelect={(range) => setCustomDateRange({ from: range?.from, to: range?.to })}
+                    numberOfMonths={2}
+                    locale={ptBR}
+                  />
+                </PopoverContent>
+              </Popover>
+            )}
+
+            {/* Export Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <Download className="h-4 w-4" />
+                  Exportar
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportCSV}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Exportar CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportExcel}>
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Exportar Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
-        {/* Stats Grid - 6 KPI Cards */}
-        <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 sm:grid-cols-3 lg:grid-cols-6">
+        {/* Stats Grid - 8 KPI Cards */}
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 sm:grid-cols-4 lg:grid-cols-8">
           <StatCard
             title="📋 Total"
             value={stats.total}
@@ -297,6 +439,18 @@ export default function Dashboard() {
             icon={XCircle}
             variant="destructive"
             onClick={() => navigate('/solicitacoes?status=recusada')}
+          />
+          <StatCard
+            title="📊 Taxa Aprov."
+            value={`${stats.approvalRate}%`}
+            icon={Percent}
+            variant="success"
+          />
+          <StatCard
+            title="⏱️ Tempo Méd."
+            value={`${stats.avgResponseTime}h`}
+            icon={Timer}
+            variant="info"
           />
         </div>
 
