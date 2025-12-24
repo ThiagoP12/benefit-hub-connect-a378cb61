@@ -4,7 +4,7 @@ import { roleLabels, UserRole } from '@/types/benefits';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Search, Building2, Calendar, Phone, Briefcase, History, Wallet } from 'lucide-react';
+import { Search, Building2, Calendar, Phone, Briefcase, History, Wallet, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { NewColaboradorDialog } from '@/components/colaboradores/NewColaboradorDialog';
@@ -141,7 +141,10 @@ export default function Colaboradores() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">👥 Colaboradores</h1>
+            <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+              <Users className="h-7 w-7" />
+              Colaboradores
+            </h1>
             <p className="mt-1 text-muted-foreground">Gerencie os colaboradores cadastrados</p>
           </div>
           <div className="flex gap-3">
