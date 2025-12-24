@@ -164,51 +164,74 @@ export default function Unidades() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredUnits.map((unit) => (
-              <Card 
-                key={unit.id} 
-                className="border bg-card hover:shadow-md transition-all duration-200"
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-3">
-                    <Badge variant="outline" className="font-mono text-sm">
-                      {unit.code}
-                    </Badge>
-                    <div className="flex gap-1">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8"
-                        onClick={() => handleEdit(unit)}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                        onClick={() => handleDelete(unit)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+            {filteredUnits.map((unit, index) => {
+              const colors = [
+                'from-blue-500/10 to-blue-600/5 border-blue-200 dark:border-blue-800',
+                'from-emerald-500/10 to-emerald-600/5 border-emerald-200 dark:border-emerald-800',
+                'from-violet-500/10 to-violet-600/5 border-violet-200 dark:border-violet-800',
+                'from-amber-500/10 to-amber-600/5 border-amber-200 dark:border-amber-800',
+                'from-rose-500/10 to-rose-600/5 border-rose-200 dark:border-rose-800',
+                'from-cyan-500/10 to-cyan-600/5 border-cyan-200 dark:border-cyan-800',
+              ];
+              const colorClass = colors[index % colors.length];
+              
+              return (
+                <Card 
+                  key={unit.id} 
+                  className={`border-2 bg-gradient-to-br ${colorClass} hover:shadow-lg transition-all duration-300 hover:-translate-y-1`}
+                >
+                  <CardContent className="p-5">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2.5 rounded-xl bg-primary/10">
+                          <Building2 className="h-5 w-5 text-primary" />
+                        </div>
+                        <Badge variant="secondary" className="font-mono text-sm font-bold">
+                          {unit.code}
+                        </Badge>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 hover:bg-primary/10"
+                          onClick={() => handleEdit(unit)}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDelete(unit)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <h3 className="font-semibold text-lg mb-4 line-clamp-2">{unit.name}</h3>
-                  
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1.5">
-                      <Users className="h-4 w-4" />
-                      <span>{unit.collaboratorCount} colaboradores</span>
+                    
+                    <h3 className="font-bold text-lg mb-4 line-clamp-2 text-foreground">{unit.name}</h3>
+                    
+                    <div className="flex items-center gap-3 pt-3 border-t border-border/50">
+                      <div className="flex items-center gap-1.5 text-sm">
+                        <div className="p-1 rounded bg-muted">
+                          <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                        </div>
+                        <span className="font-semibold">{unit.collaboratorCount}</span>
+                        <span className="text-muted-foreground text-xs">colab.</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-sm">
+                        <div className="p-1 rounded bg-muted">
+                          <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                        </div>
+                        <span className="font-semibold">{unit.requestCount}</span>
+                        <span className="text-muted-foreground text-xs">solic.</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <FileText className="h-4 w-4" />
-                      <span>{unit.requestCount} solicitações</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
 
