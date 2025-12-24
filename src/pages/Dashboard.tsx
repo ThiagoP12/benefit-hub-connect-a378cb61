@@ -4,7 +4,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { format, startOfMonth, endOfMonth, subMonths, differenceInHours, parseISO, isWithinInterval, startOfDay, endOfDay, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { FileText, Clock, CheckCircle, XCircle, FolderOpen, TrendingUp, Eye, Download, FileSpreadsheet, Calendar, Timer, Percent, LayoutDashboard } from 'lucide-react';
+import { FileText, Clock, CheckCircle, FolderOpen, TrendingUp, Eye, Download, FileSpreadsheet, Calendar, Timer, LayoutDashboard, Building2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { BenefitType, benefitTypeLabels, benefitTypeEmojis, statusLabels } from '@/types/benefits';
 import { benefitTypes } from '@/data/mockData';
@@ -380,6 +380,7 @@ export default function Dashboard() {
             {/* Unit Filter */}
             <Select value={unitFilter} onValueChange={setUnitFilter}>
               <SelectTrigger className="w-[160px]">
+                <Building2 className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Unidade" />
               </SelectTrigger>
               <SelectContent>
@@ -437,7 +438,7 @@ export default function Dashboard() {
         </div>
 
         {/* Stats Grid - 8 KPI Cards */}
-        <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 sm:grid-cols-4 lg:grid-cols-8">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 sm:grid-cols-3 lg:grid-cols-6">
           <StatCard
             title="Total"
             value={stats.total}
@@ -470,19 +471,6 @@ export default function Dashboard() {
             icon={CheckCircle}
             variant="success"
             onClick={() => navigate('/solicitacoes?status=aprovada')}
-          />
-          <StatCard
-            title="Reprovadas"
-            value={stats.reprovados}
-            icon={XCircle}
-            variant="destructive"
-            onClick={() => navigate('/solicitacoes?status=recusada')}
-          />
-          <StatCard
-            title="Taxa Aprov."
-            value={`${stats.approvalRate}%`}
-            icon={Percent}
-            variant="success"
           />
           <StatCard
             title="Tempo Méd."
