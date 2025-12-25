@@ -85,6 +85,7 @@ interface BenefitDetailsSheetProps {
   onNavigate?: (direction: "prev" | "next") => void;
   isBlockPeriod?: boolean;
   cutoffDay?: number;
+  isRequestPaused?: boolean;
 }
 
 export function BenefitDetailsSheet({
@@ -97,6 +98,7 @@ export function BenefitDetailsSheet({
   onNavigate,
   isBlockPeriod = false,
   cutoffDay = 25,
+  isRequestPaused = false,
 }: BenefitDetailsSheetProps) {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<BenefitStatus>(request.status);
@@ -411,9 +413,26 @@ export function BenefitDetailsSheet({
           <ScrollArea className="flex-1 min-h-0">
             <TabsContent value="details" className="m-0">
               <div className="p-6 space-y-6">
+                {/* Paused Request Alert */}
+                {isRequestPaused && (
+                  <Alert className="border-orange-500/50 bg-orange-500/10">
+                    <Clock className="h-4 w-4 text-orange-500" />
+                    <AlertDescription className="text-orange-600 dark:text-orange-400">
+                      ⏸️ Este chamado está <strong>pausado</strong> pois foi criado após o dia {cutoffDay}. O atendimento será retomado no próximo mês.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 {/* Status atual */}
                 <div className="flex items-center justify-between">
-                  <StatusBadge status={status} label={status === 'aberta' ? 'Aberto' : status === 'em_analise' ? 'Em Análise' : status === 'aprovada' ? 'Aprovado' : status === 'recusada' ? 'Recusado' : 'Concluído'} />
+                  <div className="flex items-center gap-2">
+                    <StatusBadge status={status} label={status === 'aberta' ? 'Aberto' : status === 'em_analise' ? 'Em Análise' : status === 'aprovada' ? 'Aprovado' : status === 'recusada' ? 'Recusado' : 'Concluído'} />
+                    {isRequestPaused && (
+                      <span className="text-[10px] bg-orange-500/20 text-orange-600 dark:text-orange-400 px-1.5 py-0.5 rounded font-medium">
+                        PAUSADO
+                      </span>
+                    )}
+                  </div>
                   <span className="text-xs text-muted-foreground">
                     {getRelativeTime(request.created_at)}
                   </span>

@@ -98,6 +98,13 @@ interface BenefitRequest {
   } | null;
 }
 
+// Helper: verifica se um chamado está pausado (criado após dia 25 do mês)
+const isRequestPaused = (createdAt: string, cutoffDay: number): boolean => {
+  const createdDate = new Date(createdAt);
+  const dayOfMonth = createdDate.getDate();
+  return dayOfMonth > cutoffDay;
+};
+
 const ITEMS_PER_PAGE = 10;
 
 export default function Solicitacoes() {
@@ -379,12 +386,14 @@ export default function Solicitacoes() {
       return null;
     }
     
-    // If in block period, show paused indicator
-    if (isBlockPeriod) {
+    // Check if this specific request is paused (created after cutoff day)
+    const isPaused = isRequestPaused(request.created_at, cutoffDay);
+    if (isPaused) {
       return {
-        bgColor: 'bg-muted',
+        bgColor: 'bg-orange-500',
         text: 'Pausado',
-        label: 'SLA Pausado'
+        label: `Chamado pausado (criado após dia ${cutoffDay})`,
+        isPaused: true
       };
     }
     
@@ -401,11 +410,11 @@ export default function Solicitacoes() {
       : `${hoursElapsed}h`;
     
     if (hoursElapsed <= config.green_hours) {
-      return { bgColor: 'bg-green-500', text: timeText, label: `${timeText} (dentro do prazo)` };
+      return { bgColor: 'bg-green-500', text: timeText, label: `${timeText} (dentro do prazo)`, isPaused: false };
     } else if (hoursElapsed <= config.yellow_hours) {
-      return { bgColor: 'bg-yellow-500', text: timeText, label: `${timeText} (atenção)` };
+      return { bgColor: 'bg-yellow-500', text: timeText, label: `${timeText} (atenção)`, isPaused: false };
     } else {
-      return { bgColor: 'bg-red-500', text: timeText, label: `${timeText} (atrasado)` };
+      return { bgColor: 'bg-red-500', text: timeText, label: `${timeText} (atrasado)`, isPaused: false };
     }
   };
 
@@ -639,8 +648,17 @@ export default function Solicitacoes() {
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <div className="flex items-center gap-2 cursor-help">
-                                <div className={cn("w-2.5 h-2.5 rounded-full", getSlaIndicator(request)?.bgColor)} />
-                                <span className="text-xs font-medium">{getSlaIndicator(request)?.text}</span>
+                                {getSlaIndicator(request)?.isPaused ? (
+                                  <PauseCircle className="h-4 w-4 text-orange-500" />
+                                ) : (
+                                  <div className={cn("w-2.5 h-2.5 rounded-full", getSlaIndicator(request)?.bgColor)} />
+                                )}
+                                <span className={cn(
+                                  "text-xs font-medium",
+                                  getSlaIndicator(request)?.isPaused && "text-orange-500"
+                                )}>
+                                  {getSlaIndicator(request)?.text}
+                                </span>
                               </div>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -653,10 +671,17 @@ export default function Solicitacoes() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <StatusBadge 
-                        status={request.status} 
-                        label={statusLabels[request.status]} 
-                      />
+                      <div className="flex items-center gap-2">
+                        <StatusBadge 
+                          status={request.status} 
+                          label={statusLabels[request.status]} 
+                        />
+                        {isRequestPaused(request.created_at, cutoffDay) && (request.status === 'aberta' || request.status === 'em_analise') && (
+                          <span className="text-[10px] bg-orange-500/20 text-orange-600 dark:text-orange-400 px-1.5 py-0.5 rounded font-medium">
+                            PAUSADO
+                          </span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <Button 
@@ -695,6 +720,7 @@ export default function Solicitacoes() {
             onNavigate={handleNavigate}
             isBlockPeriod={isBlockPeriod}
             cutoffDay={cutoffDay}
+            isRequestPaused={isRequestPaused(selectedRequest.created_at, cutoffDay) && (selectedRequest.status === 'aberta' || selectedRequest.status === 'em_analise')}
           />
         )}
       </div>
