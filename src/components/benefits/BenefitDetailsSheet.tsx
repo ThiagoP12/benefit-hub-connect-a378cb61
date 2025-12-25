@@ -326,7 +326,7 @@ export function BenefitDetailsSheet({
         </SheetHeader>
 
         {/* Conteúdo scrollável com abas */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 min-h-0 flex flex-col">
           <div className="px-6 pt-4">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="details" className="flex items-center gap-2">
@@ -340,7 +340,7 @@ export function BenefitDetailsSheet({
             </TabsList>
           </div>
 
-          <ScrollArea className="flex-1 overflow-auto">
+          <ScrollArea className="flex-1 min-h-0">
             <TabsContent value="details" className="m-0">
               <div className="p-6 space-y-6">
                 {/* Status atual */}
