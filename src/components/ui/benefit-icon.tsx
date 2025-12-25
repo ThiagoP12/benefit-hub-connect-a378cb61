@@ -57,14 +57,13 @@ export function BenefitIcon({ type, size = 'md', className }: BenefitIconProps) 
     vale_gas: (
       <svg viewBox="0 0 24 24" fill="none" className={cn(sizeClass, className)}>
         <circle cx="12" cy="12" r="11" fill="#EF4444" fillOpacity="0.15" />
-        <path
-          d="M12 7C12 7 8 10 8 13C8 15.2091 9.79086 17 12 17C14.2091 17 16 15.2091 16 13C16 10 12 7 12 7Z"
-          fill="#EF4444"
-        />
-        <path
-          d="M12 11C12 11 10.5 12.5 10.5 14C10.5 14.8284 11.1716 15.5 12 15.5C12.8284 15.5 13.5 14.8284 13.5 14C13.5 12.5 12 11 12 11Z"
-          fill="#FCD34D"
-        />
+        {/* Botijão de gás */}
+        <rect x="8" y="9" width="8" height="9" rx="2" fill="#EF4444" />
+        <rect x="9.5" y="6" width="5" height="3" rx="1" fill="#EF4444" />
+        <rect x="11" y="4" width="2" height="2.5" rx="0.5" fill="#B91C1C" />
+        <ellipse cx="12" cy="9" rx="3" ry="1" fill="#FCA5A5" fillOpacity="0.5" />
+        <path d="M10 13H14" stroke="white" strokeWidth="1" strokeLinecap="round" />
+        <path d="M10 15H14" stroke="white" strokeWidth="1" strokeLinecap="round" />
       </svg>
     ),
     papelaria: (
