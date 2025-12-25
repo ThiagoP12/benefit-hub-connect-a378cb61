@@ -46,8 +46,17 @@ export const getMonthlyData = (): MonthlyData[] => {
   }));
 };
 
-// Benefit types list
-export const benefitTypes: BenefitType[] = ['autoescola', 'farmacia', 'oficina', 'vale_gas', 'papelaria', 'otica'];
+// Benefit types list (Tipos de Solicitação RH/DP)
+export const benefitTypes: BenefitType[] = [
+  'alteracao_ferias',
+  'aviso_folga_falta',
+  'atestado',
+  'contracheque',
+  'abono_horas',
+  'alteracao_horario',
+  'operacao_domingo',
+  'relatorio_ponto'
+];
 
-// Status list (sem concluida na UI)
+// Status list
 export const statuses: BenefitStatus[] = ['aberta', 'em_analise', 'aprovada', 'recusada'];

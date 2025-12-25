@@ -14,6 +14,7 @@ import Usuarios from "./pages/Usuarios";
 import WhatsApp from "./pages/WhatsApp";
 import Configuracoes from "./pages/Configuracoes";
 import Auditoria from "./pages/Auditoria";
+import Beneficios from "./pages/Beneficios";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -67,6 +68,11 @@ const App = () => (
               <Route path="/auditoria" element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <Auditoria />
+                </ProtectedRoute>
+              } />
+              <Route path="/beneficios" element={
+                <ProtectedRoute allowedRoles={['admin', 'gestor', 'agente_dp']}>
+                  <Beneficios />
                 </ProtectedRoute>
               } />
               <Route path="*" element={<NotFound />} />
