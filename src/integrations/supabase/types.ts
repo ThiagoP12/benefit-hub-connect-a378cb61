@@ -646,6 +646,9 @@ export type Database = {
         | "vale_gas"
         | "papelaria"
         | "otica"
+        | "plano_odontologico"
+        | "plano_saude"
+        | "vale_transporte"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -791,6 +794,9 @@ export const Constants = {
         "vale_gas",
         "papelaria",
         "otica",
+        "plano_odontologico",
+        "plano_saude",
+        "vale_transporte",
       ],
     },
   },
