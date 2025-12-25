@@ -638,19 +638,20 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <div className="space-y-2 max-h-[280px] overflow-y-auto">
-                  {alertRequests.map((req) => (
+                  {alertRequests.map((req, index) => (
                     <div 
                       key={req.id}
-                      className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition-colors ${
+                      className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition-all animate-fade-in ${
                         req.slaStatus === 'red' 
-                          ? 'border-destructive/50 bg-destructive/5' 
+                          ? 'border-destructive/50 bg-destructive/5 animate-pulse' 
                           : 'border-warning/50 bg-warning/5'
                       }`}
+                      style={{ animationDelay: `${index * 0.05}s` }}
                       onClick={() => navigate(`/solicitacoes?protocol=${req.protocol}`)}
                     >
                       <div className="flex items-center gap-3">
                         <div className={`p-2 rounded-full ${
-                          req.slaStatus === 'red' ? 'bg-destructive/20' : 'bg-warning/20'
+                          req.slaStatus === 'red' ? 'bg-destructive/20 animate-pulse' : 'bg-warning/20'
                         }`}>
                           {req.slaStatus === 'red' ? (
                             <XCircle className="h-4 w-4 text-destructive" />
@@ -665,7 +666,7 @@ export default function Dashboard() {
                       </div>
                       <div className="text-right">
                         <p className={`font-bold text-sm ${
-                          req.slaStatus === 'red' ? 'text-destructive' : 'text-warning'
+                          req.slaStatus === 'red' ? 'text-destructive animate-pulse' : 'text-warning'
                         }`}>
                           {req.hoursOpen}h
                         </p>
