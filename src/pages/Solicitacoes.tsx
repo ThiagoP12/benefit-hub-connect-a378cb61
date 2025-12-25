@@ -35,7 +35,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Search, Eye, CalendarIcon, X, Filter, RefreshCw, PauseCircle, Download, FileSpreadsheet, Building2, FileText, CircleDot, Package, Hash, User, Clock, Settings, Handshake } from 'lucide-react';
+import { Search, Eye, CalendarIcon, X, Filter, RefreshCw, PauseCircle, Download, FileSpreadsheet, Building2, FileText, CircleDot, Package, Hash, User, Clock, Settings } from 'lucide-react';
 import { exportToExcel, formatDateForExport, ExportColumn } from '@/lib/exportUtils';
 import { toast } from 'sonner';
 import {
@@ -95,9 +95,6 @@ interface BenefitRequest {
       name: string;
       code: string;
     } | null;
-  } | null;
-  partnership?: {
-    name: string;
   } | null;
 }
 
@@ -222,21 +219,9 @@ export default function Solicitacoes() {
 
       const profilesMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
 
-      // Fetch partnership usage to get the partnership for each request
-      const requestIds = requestsData?.map(r => r.id) || [];
-      const { data: usageData } = await supabase
-        .from('partnership_usage')
-        .select('benefit_request_id, partnership:partnerships(name)')
-        .in('benefit_request_id', requestIds);
-
-      const partnershipMap = new Map(
-        usageData?.map(u => [u.benefit_request_id, u.partnership]) || []
-      );
-
       const requestsWithProfiles = (requestsData || []).map(req => ({
         ...req,
-        profile: profilesMap.get(req.user_id) || null,
-        partnership: partnershipMap.get(req.id) || null
+        profile: profilesMap.get(req.user_id) || null
       }));
 
       setRequests(requestsWithProfiles as BenefitRequest[]);
@@ -582,7 +567,6 @@ export default function Solicitacoes() {
                 <TableHead className="font-semibold"><Hash className="h-3.5 w-3.5 inline mr-1" />Protocolo</TableHead>
                 <TableHead className="font-semibold"><User className="h-3.5 w-3.5 inline mr-1" />Colaborador</TableHead>
                 <TableHead className="font-semibold"><Building2 className="h-3.5 w-3.5 inline mr-1" />Unidade</TableHead>
-                <TableHead className="font-semibold"><Handshake className="h-3.5 w-3.5 inline mr-1" />Convênio</TableHead>
                 <TableHead className="font-semibold"><Package className="h-3.5 w-3.5 inline mr-1" />Tipo</TableHead>
                 <TableHead className="font-semibold"><Clock className="h-3.5 w-3.5 inline mr-1" />SLA</TableHead>
                 <TableHead className="font-semibold"><CircleDot className="h-3.5 w-3.5 inline mr-1" />Status</TableHead>
@@ -597,7 +581,6 @@ export default function Solicitacoes() {
                     <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-20" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-12" /></TableCell>
                     <TableCell><Skeleton className="h-4 w-20" /></TableCell>
@@ -606,7 +589,7 @@ export default function Solicitacoes() {
                 ))
               ) : paginatedRequests.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     😕 Nenhuma solicitação encontrada
                   </TableCell>
                 </TableRow>
@@ -629,13 +612,10 @@ export default function Solicitacoes() {
                     <TableCell className="text-sm">
                       {request.profile?.unit?.name || '-'}
                     </TableCell>
-                    <TableCell className="text-sm">
-                      {request.partnership?.name || '-'}
-                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <BenefitIcon type={request.benefit_type} size="lg" />
-                        <span className="hidden sm:inline text-sm">{benefitTypeLabels[request.benefit_type]}</span>
+                        <BenefitIcon type={request.benefit_type as any} size="lg" />
+                        <span className="text-sm">{benefitTypeLabels[request.benefit_type] || request.benefit_type}</span>
                       </div>
                     </TableCell>
                     <TableCell>
