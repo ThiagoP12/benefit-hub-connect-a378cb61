@@ -1,5 +1,18 @@
-// Alinhado com os enums do banco de dados Supabase
-export type BenefitType = 'autoescola' | 'farmacia' | 'oficina' | 'vale_gas' | 'papelaria' | 'otica' | 'outros';
+// Tipos de convênio usados na UI
+export type ConvenioBenefitType = 'autoescola' | 'farmacia' | 'oficina' | 'vale_gas' | 'papelaria' | 'otica' | 'outros';
+
+// Tipo completo alinhado com o enum do banco de dados Supabase
+export type BenefitType = 
+  | ConvenioBenefitType
+  // Tipos legados do banco (não usados na UI, mas necessários para compatibilidade)
+  | 'alteracao_ferias'
+  | 'aviso_folga_falta'
+  | 'atestado'
+  | 'contracheque'
+  | 'abono_horas'
+  | 'alteracao_horario'
+  | 'operacao_domingo'
+  | 'relatorio_ponto';
 
 export type BenefitStatus = 'aberta' | 'em_analise' | 'aprovada' | 'recusada' | 'concluida';
 
@@ -57,7 +70,7 @@ export interface Log {
   created_at: string;
 }
 
-export const benefitTypeLabels: Record<BenefitType, string> = {
+export const benefitTypeLabels: Record<ConvenioBenefitType, string> = {
   autoescola: 'Autoescola',
   farmacia: 'Farmácia',
   oficina: 'Oficina',
@@ -67,7 +80,7 @@ export const benefitTypeLabels: Record<BenefitType, string> = {
   outros: 'Outros',
 };
 
-export const benefitTypeEmojis: Record<BenefitType, string> = {
+export const benefitTypeEmojis: Record<ConvenioBenefitType, string> = {
   autoescola: '🚗',
   farmacia: '💊',
   oficina: '🔧',
@@ -92,7 +105,7 @@ export const statusFilterLabels: Record<Exclude<BenefitStatus, 'concluida'>, str
   recusada: 'Reprovado',
 };
 
-export const benefitTypeFilterLabels: Record<Exclude<BenefitType, 'outros'>, string> = {
+export const benefitTypeFilterLabels: Record<Exclude<ConvenioBenefitType, 'outros'>, string> = {
   autoescola: 'Autoescola',
   farmacia: 'Farmácia',
   oficina: 'Oficina',

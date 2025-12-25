@@ -1,7 +1,8 @@
 import { cn } from '@/lib/utils';
 import { Car, Pill, Wrench, Flame, BookOpen, Glasses, Package } from 'lucide-react';
+import { ConvenioBenefitType } from '@/types/benefits';
 
-export type BenefitType = 'autoescola' | 'farmacia' | 'oficina' | 'vale_gas' | 'papelaria' | 'otica' | 'outros';
+export type BenefitType = ConvenioBenefitType;
 
 interface BenefitIconProps {
   type: BenefitType;
