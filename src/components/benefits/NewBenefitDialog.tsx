@@ -96,7 +96,10 @@ export function NewBenefitDialog({ onSuccess }: { onSuccess?: () => void }) {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setLoading(true);
 
-    const protocol = `BEN-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`;
+    const randomChars = Array.from({ length: 6 }, () => 
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.charAt(Math.floor(Math.random() * 36))
+    ).join('');
+    const protocol = `Protoc-${new Date().getFullYear()}${randomChars}`;
 
     const { error } = await supabase
       .from('benefit_requests')
