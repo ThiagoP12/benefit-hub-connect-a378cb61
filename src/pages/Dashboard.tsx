@@ -6,9 +6,9 @@ import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 import { BenefitTypeCards } from '@/components/dashboard/BenefitTypeCards';
 import { format, startOfMonth, endOfMonth, subMonths, differenceInHours, isWithinInterval, startOfDay, endOfDay, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { FileText, Clock, CheckCircle, FolderOpen, TrendingUp, Eye, Download, FileSpreadsheet, Calendar, Timer, LayoutDashboard, Building2, XCircle, AlertTriangle, Hash, User, Package, CircleDot, Settings, RefreshCw } from 'lucide-react';
+import { FileText, Clock, CheckCircle, FolderOpen, TrendingUp, Eye, Download, FileSpreadsheet, Calendar, Timer, LayoutDashboard, Building2, XCircle, AlertTriangle, Hash, User, Package, CircleDot, Settings, RefreshCw, ChevronDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { BenefitType, benefitTypeLabels, benefitTypeEmojis, statusLabels } from '@/types/benefits';
+import { BenefitType, ConvenioBenefitType, benefitTypeLabels, benefitTypeEmojis, statusLabels } from '@/types/benefits';
 import { BenefitIcon } from '@/components/ui/benefit-icon';
 import { benefitTypes } from '@/data/mockData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,11 +18,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
 import { exportToCSV, exportToExcel, formatDateTimeForExport } from '@/lib/exportUtils';
 import { toast } from 'sonner';
 
-const filteredBenefitTypes = benefitTypes.filter(t => t !== 'outros') as BenefitType[];
+const filteredBenefitTypes = benefitTypes.filter(t => t !== 'outros') as ConvenioBenefitType[];
 
 interface DashboardStats {
   total: number;
@@ -89,7 +90,7 @@ export default function Dashboard() {
     total: 0, today: 0, abertos: 0, emAnalise: 0, aprovados: 0, reprovados: 0,
     approvalRate: 0, avgResponseTime: 0
   });
-  const [benefitTypeData, setBenefitTypeData] = useState<{ type: BenefitType; count: number }[]>([]);
+  const [benefitTypeData, setBenefitTypeData] = useState<{ type: ConvenioBenefitType; count: number }[]>([]);
   const [allRequests, setAllRequests] = useState<RequestData[]>([]);
   const [recentRequests, setRecentRequests] = useState<RecentRequest[]>([]);
   const [alertRequests, setAlertRequests] = useState<AlertRequest[]>([]);
@@ -456,11 +457,6 @@ export default function Dashboard() {
               </Popover>
             )}
 
-            {/* Refresh Button */}
-            <Button variant="outline" size="icon" onClick={handleRefresh} className="shrink-0">
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-
             {/* Export Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -480,6 +476,11 @@ export default function Dashboard() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            {/* Refresh Button */}
+            <Button variant="outline" size="icon" onClick={handleRefresh} className="shrink-0">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
           </div>
         </div>
 
@@ -541,8 +542,28 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Benefit Type Cards */}
-        <BenefitTypeCards data={benefitTypeData} total={stats.total} />
+        {/* Benefit Type Cards - Collapsible */}
+        <Collapsible defaultOpen className="animate-fade-in" style={{ animationDelay: '0.35s' }}>
+          <Card className="border-2 border-primary/10">
+            <CollapsibleTrigger asChild>
+              <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors flex flex-row items-center justify-between py-3 px-4">
+                <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                  <Package className="h-5 w-5 text-primary" />
+                  Convênios
+                  <span className="text-sm font-normal text-muted-foreground">
+                    ({stats.total} solicitações)
+                  </span>
+                </CardTitle>
+                <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="pt-0 pb-4">
+                <BenefitTypeCards data={benefitTypeData} total={stats.total} />
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
 
         {/* Charts Grid */}
         <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
@@ -773,8 +794,8 @@ export default function Dashboard() {
                       <td className="py-3 px-2 text-sm text-muted-foreground hidden md:table-cell">{request.profile?.unit?.name || '-'}</td>
                       <td className="py-3 px-2">
                         <div className="inline-flex items-center gap-2 text-sm">
-                          <BenefitIcon type={request.benefit_type as BenefitType} size="lg" />
-                          <span className="hidden lg:inline">{benefitTypeLabels[request.benefit_type as BenefitType]}</span>
+                          <BenefitIcon type={request.benefit_type as ConvenioBenefitType} size="lg" />
+                          <span className="hidden lg:inline">{benefitTypeLabels[request.benefit_type as ConvenioBenefitType] || request.benefit_type}</span>
                         </div>
                       </td>
                       <td className="py-3 px-2">

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { benefitTypeLabels, statusLabels, BenefitStatus, BenefitType } from '@/types/benefits';
+import { benefitTypeLabels, statusLabels, BenefitStatus, BenefitType, ConvenioBenefitType } from '@/types/benefits';
 import { BenefitIcon } from '@/components/ui/benefit-icon';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Input } from '@/components/ui/input';
@@ -485,7 +485,7 @@ export default function Solicitacoes() {
                 {Object.entries(benefitTypeLabels).map(([key, label]) => (
                   <SelectItem key={key} value={key}>
                     <div className="flex items-center gap-2">
-                      <BenefitIcon type={key as BenefitType} size="sm" />
+                      <BenefitIcon type={key as ConvenioBenefitType} size="sm" />
                       <span>{label}</span>
                     </div>
                   </SelectItem>
@@ -614,8 +614,8 @@ export default function Solicitacoes() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <BenefitIcon type={request.benefit_type} size="lg" />
-                        <span className="hidden sm:inline text-sm">{benefitTypeLabels[request.benefit_type]}</span>
+                        <BenefitIcon type={request.benefit_type as ConvenioBenefitType} size="lg" />
+                        <span className="hidden sm:inline text-sm">{benefitTypeLabels[request.benefit_type as ConvenioBenefitType] || request.benefit_type}</span>
                       </div>
                     </TableCell>
                     <TableCell>
