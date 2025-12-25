@@ -43,14 +43,14 @@ const statusFilterOptions: { value: string; label: string }[] = [
 interface BenefitRequest {
   id: string;
   protocol: string;
-  benefit_type: string;
-  status: string;
+  benefit_type: BenefitType;
+  status: BenefitStatus;
   created_at: string;
-  approved_value?: number | null;
-  rejection_reason?: string | null;
-  pdf_url?: string | null;
-  total_installments?: number | null;
-  paid_installments?: number | null;
+  approved_value?: number;
+  rejection_reason?: string;
+  pdf_url?: string;
+  total_installments?: number;
+  paid_installments?: number;
 }
 
 interface ColaboradorHistorySheetProps {

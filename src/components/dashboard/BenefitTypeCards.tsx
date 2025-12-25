@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
-import { BenefitIcon } from '@/components/ui/benefit-icon';
-import { BenefitType, benefitTypeLabels } from '@/types/benefits';
+import { BenefitIcon, BenefitType } from '@/components/ui/benefit-icon';
+import { benefitTypeLabels } from '@/types/benefits';
 import { cn } from '@/lib/utils';
 import { AnimatedCounter } from './AnimatedCounter';
 

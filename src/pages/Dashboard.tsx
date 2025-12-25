@@ -9,7 +9,6 @@ import { ptBR } from 'date-fns/locale';
 import { FileText, Clock, CheckCircle, FolderOpen, TrendingUp, Eye, Download, FileSpreadsheet, Calendar, Timer, LayoutDashboard, Building2, XCircle, AlertTriangle, Hash, User, Package, CircleDot, Settings, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { BenefitType, benefitTypeLabels, benefitTypeEmojis, statusLabels } from '@/types/benefits';
-import { normalizeBenefitType } from '@/lib/benefitType';
 import { BenefitIcon } from '@/components/ui/benefit-icon';
 import { benefitTypes } from '@/data/mockData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -226,7 +225,7 @@ export default function Dashboard() {
 
       const typeData = filteredBenefitTypes.map(type => ({
         type,
-        count: filteredData.filter(r => normalizeBenefitType(r.benefit_type) === type).length,
+        count: filteredData.filter(r => r.benefit_type === type).length,
       }));
       setBenefitTypeData(typeData);
 
@@ -298,10 +297,7 @@ export default function Dashboard() {
     { header: 'Protocolo', accessor: 'protocol' as const },
     { header: 'Colaborador', accessor: 'collaborator_name' as const },
     { header: 'Unidade', accessor: 'unit_name' as const },
-    { header: 'Tipo de Benefício', accessor: (item: any) => {
-        const t = normalizeBenefitType(item.benefit_type);
-        return benefitTypeLabels[t];
-      } },
+    { header: 'Tipo de Benefício', accessor: (item: any) => benefitTypeLabels[item.benefit_type as BenefitType] || item.benefit_type },
     { header: 'Status', accessor: (item: any) => statusLabels[item.status as keyof typeof statusLabels] || item.status },
     { header: 'Data de Criação', accessor: (item: any) => formatDateTimeForExport(item.created_at) },
   ];
@@ -777,15 +773,8 @@ export default function Dashboard() {
                       <td className="py-3 px-2 text-sm text-muted-foreground hidden md:table-cell">{request.profile?.unit?.name || '-'}</td>
                       <td className="py-3 px-2">
                         <div className="inline-flex items-center gap-2 text-sm">
-                          {(() => {
-                            const type = normalizeBenefitType(request.benefit_type);
-                            return (
-                              <>
-                                <BenefitIcon type={type} size="lg" />
-                                <span className="hidden lg:inline">{benefitTypeLabels[type]}</span>
-                              </>
-                            );
-                          })()}
+                          <BenefitIcon type={request.benefit_type as BenefitType} size="lg" />
+                          <span className="hidden lg:inline">{benefitTypeLabels[request.benefit_type as BenefitType]}</span>
                         </div>
                       </td>
                       <td className="py-3 px-2">

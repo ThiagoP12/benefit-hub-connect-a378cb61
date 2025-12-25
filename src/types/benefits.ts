@@ -1,12 +1,5 @@
-// Alinhado com os tipos de convênio usados nos chamados
-export type BenefitType =
-  | 'autoescola'
-  | 'farmacia'
-  | 'oficina'
-  | 'vale_gas'
-  | 'papelaria'
-  | 'otica'
-  | 'outros';
+// Alinhado com os enums do banco de dados Supabase
+export type BenefitType = 'autoescola' | 'farmacia' | 'oficina' | 'vale_gas' | 'papelaria' | 'otica' | 'outros';
 
 export type BenefitStatus = 'aberta' | 'em_analise' | 'aprovada' | 'recusada' | 'concluida';
 

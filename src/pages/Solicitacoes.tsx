@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { benefitTypeLabels, statusLabels, BenefitStatus, BenefitType } from '@/types/benefits';
-import { normalizeBenefitType } from '@/lib/benefitType';
 import { BenefitIcon } from '@/components/ui/benefit-icon';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Input } from '@/components/ui/input';
@@ -222,7 +221,6 @@ export default function Solicitacoes() {
 
       const requestsWithProfiles = (requestsData || []).map(req => ({
         ...req,
-        benefit_type: normalizeBenefitType((req as any).benefit_type),
         profile: profilesMap.get(req.user_id) || null
       }));
 
@@ -616,8 +614,8 @@ export default function Solicitacoes() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <BenefitIcon type={request.benefit_type as any} size="lg" />
-                        <span className="text-sm">{benefitTypeLabels[request.benefit_type] || request.benefit_type}</span>
+                        <BenefitIcon type={request.benefit_type} size="lg" />
+                        <span className="hidden sm:inline text-sm">{benefitTypeLabels[request.benefit_type]}</span>
                       </div>
                     </TableCell>
                     <TableCell>

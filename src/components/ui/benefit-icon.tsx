@@ -1,6 +1,7 @@
 import { cn } from '@/lib/utils';
 import { Car, Pill, Wrench, Flame, BookOpen, Glasses, Package } from 'lucide-react';
-import type { BenefitType } from '@/types/benefits';
+
+export type BenefitType = 'autoescola' | 'farmacia' | 'oficina' | 'vale_gas' | 'papelaria' | 'otica' | 'outros';
 
 interface BenefitIconProps {
   type: BenefitType;
@@ -88,4 +89,3 @@ export const benefitIconColors: Record<BenefitType, string> = {
   otica: '#06B6D4',
   outros: '#6B7280',
 };
-
