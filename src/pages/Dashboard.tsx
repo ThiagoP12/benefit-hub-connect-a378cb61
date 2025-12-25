@@ -4,15 +4,15 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 import { BenefitTypeCards } from '@/components/dashboard/BenefitTypeCards';
-import { DpBenefitTypeCards } from '@/components/dashboard/DpBenefitTypeCards';
+import { BeneficioBenefitTypeCards } from '@/components/dashboard/BeneficioBenefitTypeCards';
 import { format, startOfMonth, endOfMonth, subMonths, differenceInHours, isWithinInterval, startOfDay, endOfDay, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { FileText, Clock, CheckCircle, FolderOpen, TrendingUp, Eye, Download, FileSpreadsheet, Calendar, Timer, LayoutDashboard, Building2, XCircle, AlertTriangle, Hash, User, Package, CircleDot, Settings, RefreshCw, ChevronDown, Briefcase } from 'lucide-react';
+import { FileText, Clock, CheckCircle, FolderOpen, TrendingUp, Eye, Download, FileSpreadsheet, Calendar, Timer, LayoutDashboard, Building2, XCircle, AlertTriangle, Hash, User, Package, CircleDot, Settings, RefreshCw, ChevronDown, Briefcase, Stethoscope, ClipboardList } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { BenefitType, ConvenioBenefitType, DpBenefitType, benefitTypeLabels, benefitTypeEmojis, statusLabels } from '@/types/benefits';
+import { BenefitType, ConvenioBenefitType, BeneficioBenefitType, benefitTypeLabels, benefitTypeEmojis, statusLabels } from '@/types/benefits';
 import { BenefitIcon } from '@/components/ui/benefit-icon';
 
-const dpBenefitTypes: DpBenefitType[] = ['alteracao_ferias', 'aviso_folga_falta', 'atestado', 'contracheque', 'abono_horas', 'alteracao_horario', 'operacao_domingo', 'relatorio_ponto'];
+const beneficioBenefitTypes: BeneficioBenefitType[] = ['plano_odontologico', 'plano_saude', 'vale_transporte'];
 import { benefitTypes } from '@/data/mockData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -95,7 +95,9 @@ export default function Dashboard() {
     approvalRate: 0, avgResponseTime: 0
   });
   const [benefitTypeData, setBenefitTypeData] = useState<{ type: ConvenioBenefitType; count: number }[]>([]);
-  const [dpBenefitTypeData, setDpBenefitTypeData] = useState<{ type: DpBenefitType; count: number }[]>([]);
+  const [beneficioBenefitTypeData, setBeneficioBenefitTypeData] = useState<{ type: BeneficioBenefitType; count: number }[]>([]);
+  const [avisoFolgaCount, setAvisoFolgaCount] = useState<number>(0);
+  const [atestadoCount, setAtestadoCount] = useState<number>(0);
   const [allRequests, setAllRequests] = useState<RequestData[]>([]);
   const [recentRequests, setRecentRequests] = useState<RecentRequest[]>([]);
   const [alertRequests, setAlertRequests] = useState<AlertRequest[]>([]);
@@ -237,12 +239,16 @@ export default function Dashboard() {
       }));
       setBenefitTypeData(typeData);
 
-      // Calcular dados de benefícios DP
-      const dpTypeData = dpBenefitTypes.map(type => ({
+      // Calcular dados de benefícios (planos e vale transporte)
+      const beneficioTypeData = beneficioBenefitTypes.map(type => ({
         type,
         count: filteredData.filter(r => r.benefit_type === type).length,
       }));
-      setDpBenefitTypeData(dpTypeData);
+      setBeneficioBenefitTypeData(beneficioTypeData);
+
+      // Calcular contagens individuais para Aviso de Folga/Falta e Atestado
+      setAvisoFolgaCount(filteredData.filter(r => r.benefit_type === 'aviso_folga_falta').length);
+      setAtestadoCount(filteredData.filter(r => r.benefit_type === 'atestado').length);
 
       const exportData = filteredData.map(req => {
         const profile = profilesMap.get(req.user_id);
@@ -601,7 +607,7 @@ export default function Dashboard() {
             </CollapsibleContent>
           </Collapsible>
 
-          {/* Benefícios DP Card - Collapsible */}
+          {/* Benefícios Card - Collapsible (planos e vale transporte) */}
           <Collapsible 
             open={beneficiosOpen} 
             onOpenChange={setBeneficiosOpen}
@@ -612,13 +618,13 @@ export default function Dashboard() {
               <Card 
                 className={cn(
                   "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit",
-                  "hover:border-teal-500/50 hover:bg-teal-500/5"
+                  "hover:border-pink-500/50 hover:bg-pink-500/5"
                 )}
               >
                 <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
                   <div className="transform transition-transform duration-300 group-hover:scale-110">
-                    <div className="w-12 h-12 rounded-full bg-teal-500/15 flex items-center justify-center">
-                      <Briefcase className="h-6 w-6 text-teal-600 dark:text-teal-400" />
+                    <div className="w-12 h-12 rounded-full bg-pink-500/15 flex items-center justify-center">
+                      <Briefcase className="h-6 w-6 text-pink-600 dark:text-pink-400" />
                     </div>
                   </div>
                   <div className="text-center">
@@ -626,7 +632,7 @@ export default function Dashboard() {
                       Benefícios
                     </p>
                     <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
-                      {dpBenefitTypeData.reduce((sum, item) => sum + item.count, 0)}
+                      {beneficioBenefitTypeData.reduce((sum, item) => sum + item.count, 0)}
                     </p>
                     <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1 justify-center">
                       <ChevronDown className={cn(
@@ -640,9 +646,61 @@ export default function Dashboard() {
               </Card>
             </CollapsibleTrigger>
             <CollapsibleContent className="mt-3">
-              <DpBenefitTypeCards data={dpBenefitTypeData} total={dpBenefitTypeData.reduce((sum, item) => sum + item.count, 0)} />
+              <BeneficioBenefitTypeCards data={beneficioBenefitTypeData} total={beneficioBenefitTypeData.reduce((sum, item) => sum + item.count, 0)} />
             </CollapsibleContent>
           </Collapsible>
+
+          {/* Aviso de Folga/Falta Card - Simple */}
+          <Card 
+            className={cn(
+              "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit animate-fade-in",
+              "hover:border-slate-500/50 hover:bg-slate-500/5"
+            )}
+            style={{ animationDelay: '0.45s' }}
+            onClick={() => navigate('/solicitacoes?benefit_type=aviso_folga_falta')}
+          >
+            <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
+              <div className="transform transition-transform duration-300 group-hover:scale-110">
+                <div className="w-12 h-12 rounded-full bg-slate-500/15 flex items-center justify-center">
+                  <ClipboardList className="h-6 w-6 text-slate-600 dark:text-slate-400" />
+                </div>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Aviso Folga/Falta
+                </p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                  {avisoFolgaCount}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Atestado Card - Simple */}
+          <Card 
+            className={cn(
+              "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit animate-fade-in",
+              "hover:border-rose-500/50 hover:bg-rose-500/5"
+            )}
+            style={{ animationDelay: '0.5s' }}
+            onClick={() => navigate('/solicitacoes?benefit_type=atestado')}
+          >
+            <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
+              <div className="transform transition-transform duration-300 group-hover:scale-110">
+                <div className="w-12 h-12 rounded-full bg-rose-500/15 flex items-center justify-center">
+                  <Stethoscope className="h-6 w-6 text-rose-600 dark:text-rose-400" />
+                </div>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Atestado
+                </p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                  {atestadoCount}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Charts Grid */}

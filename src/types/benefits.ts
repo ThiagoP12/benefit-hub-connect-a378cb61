@@ -1,11 +1,14 @@
 // Tipos de convênio usados na UI
 export type ConvenioBenefitType = 'autoescola' | 'farmacia' | 'oficina' | 'vale_gas' | 'papelaria' | 'otica' | 'outros';
 
+// Tipos de benefícios (planos e vale transporte)
+export type BeneficioBenefitType = 'plano_odontologico' | 'plano_saude' | 'vale_transporte';
+
 // Tipos de benefícios DP/RH
 export type DpBenefitType = 'alteracao_ferias' | 'aviso_folga_falta' | 'atestado' | 'contracheque' | 'abono_horas' | 'alteracao_horario' | 'operacao_domingo' | 'relatorio_ponto';
 
 // Tipo completo alinhado com o enum do banco de dados Supabase
-export type BenefitType = ConvenioBenefitType | DpBenefitType;
+export type BenefitType = ConvenioBenefitType | BeneficioBenefitType | DpBenefitType;
 
 export type BenefitStatus = 'aberta' | 'em_analise' | 'aprovada' | 'recusada' | 'concluida';
 
@@ -104,6 +107,19 @@ export const dpBenefitTypeEmojis: Record<DpBenefitType, string> = {
   alteracao_horario: '🕐',
   operacao_domingo: '📅',
   relatorio_ponto: '📊',
+};
+
+// Labels para benefícios (planos e vale transporte)
+export const beneficioBenefitTypeLabels: Record<BeneficioBenefitType, string> = {
+  plano_odontologico: 'Plano Odontológico',
+  plano_saude: 'Plano de Saúde',
+  vale_transporte: 'Vale Transporte',
+};
+
+export const beneficioBenefitTypeEmojis: Record<BeneficioBenefitType, string> = {
+  plano_odontologico: '🦷',
+  plano_saude: '🏥',
+  vale_transporte: '🚌',
 };
 
 export const statusLabels: Record<BenefitStatus, string> = {
