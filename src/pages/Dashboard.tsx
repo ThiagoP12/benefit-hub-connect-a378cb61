@@ -4,13 +4,14 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 import { BenefitTypeCards } from '@/components/dashboard/BenefitTypeCards';
+import { ConvenioCards } from '@/components/dashboard/ConvenioCards';
 import { format, startOfMonth, endOfMonth, subMonths, differenceInHours, isWithinInterval, startOfDay, endOfDay, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { FileText, Clock, CheckCircle, FolderOpen, TrendingUp, Eye, Download, FileSpreadsheet, Calendar, Timer, LayoutDashboard, Building2, XCircle, AlertTriangle, Hash, User, Package, CircleDot, Settings, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { BenefitType, benefitTypeLabels, benefitTypeEmojis, statusLabels } from '@/types/benefits';
+import { BenefitType, benefitTypeLabels, benefitTypeEmojis, statusLabels, ConvenioType, convenioTypes, dpActivityTypes, DPActivityType } from '@/types/benefits';
 import { BenefitIcon } from '@/components/ui/benefit-icon';
-import { benefitTypes } from '@/data/mockData';
+// benefitTypes removido - usando listas separadas
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status-badge';
@@ -22,7 +23,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { exportToCSV, exportToExcel, formatDateTimeForExport } from '@/lib/exportUtils';
 import { toast } from 'sonner';
 
-const filteredBenefitTypes = benefitTypes.filter(t => t !== 'outros') as BenefitType[];
+// Tipos filtrados removidos - usando dpActivityTypes e convenioTypes diretamente
 
 interface DashboardStats {
   total: number;
@@ -100,6 +101,7 @@ export default function Dashboard() {
     approvalRate: 0, avgResponseTime: 0
   });
   const [benefitTypeData, setBenefitTypeData] = useState<{ type: BenefitType; count: number }[]>([]);
+  const [convenioData, setConvenioData] = useState<{ type: ConvenioType; count: number }[]>([]);
   const [allRequests, setAllRequests] = useState<RequestData[]>([]);
   const [recentRequests, setRecentRequests] = useState<RecentRequest[]>([]);
   const [alertRequests, setAlertRequests] = useState<AlertRequest[]>([]);
@@ -233,11 +235,19 @@ export default function Dashboard() {
 
       setStats({ total, today, abertos, emAnalise, aprovados, reprovados, approvalRate, avgResponseTime });
 
-      const typeData = filteredBenefitTypes.map(type => ({
+      // Dados para atividades do DP
+      const dpTypeData = dpActivityTypes.map(type => ({
+        type: type as BenefitType,
+        count: filteredData.filter(r => r.benefit_type === type).length,
+      }));
+      setBenefitTypeData(dpTypeData);
+
+      // Dados para convênios
+      const convenioTypeData = convenioTypes.map(type => ({
         type,
         count: filteredData.filter(r => r.benefit_type === type).length,
       }));
-      setBenefitTypeData(typeData);
+      setConvenioData(convenioTypeData);
 
       const exportData = filteredData.map(req => {
         const profile = profilesMap.get(req.user_id);
@@ -551,8 +561,11 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Benefit Type Cards */}
+        {/* Atividades do DP */}
         <BenefitTypeCards data={benefitTypeData} total={stats.total} />
+
+        {/* Convênios */}
+        <ConvenioCards data={convenioData} total={stats.total} />
 
         {/* Charts Grid */}
         <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">

@@ -1,60 +1,54 @@
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BenefitIcon, BenefitType } from '@/components/ui/benefit-icon';
-import { dpActivityLabels, DPActivityType, dpActivityTypes } from '@/types/benefits';
+import { convenioLabels, ConvenioType, convenioTypes } from '@/types/benefits';
 import { cn } from '@/lib/utils';
 import { AnimatedCounter } from './AnimatedCounter';
-import { ClipboardList } from 'lucide-react';
+import { Handshake } from 'lucide-react';
 
-interface BenefitTypeData {
-  type: BenefitType;
+interface ConvenioData {
+  type: ConvenioType;
   count: number;
 }
 
-interface BenefitTypeCardsProps {
-  data: BenefitTypeData[];
+interface ConvenioCardsProps {
+  data: ConvenioData[];
   total: number;
 }
 
-const cardStyles: Record<DPActivityType, string> = {
-  alteracao_ferias: 'hover:border-blue-500/50 hover:bg-blue-500/5',
-  aviso_folga_falta: 'hover:border-amber-500/50 hover:bg-amber-500/5',
-  atestado: 'hover:border-emerald-500/50 hover:bg-emerald-500/5',
-  contracheque: 'hover:border-violet-500/50 hover:bg-violet-500/5',
-  abono_horas: 'hover:border-cyan-500/50 hover:bg-cyan-500/5',
-  alteracao_horario: 'hover:border-orange-500/50 hover:bg-orange-500/5',
-  operacao_domingo: 'hover:border-red-500/50 hover:bg-red-500/5',
-  relatorio_ponto: 'hover:border-indigo-500/50 hover:bg-indigo-500/5',
-  outros: 'hover:border-gray-500/50 hover:bg-gray-500/5',
+const cardStyles: Record<ConvenioType, string> = {
+  autoescola: 'hover:border-sky-500/50 hover:bg-sky-500/5',
+  farmacia: 'hover:border-teal-500/50 hover:bg-teal-500/5',
+  oficina: 'hover:border-yellow-500/50 hover:bg-yellow-500/5',
+  vale_gas: 'hover:border-rose-500/50 hover:bg-rose-500/5',
+  papelaria: 'hover:border-purple-500/50 hover:bg-purple-500/5',
+  otica: 'hover:border-fuchsia-500/50 hover:bg-fuchsia-500/5',
 };
 
-export function BenefitTypeCards({ data, total }: BenefitTypeCardsProps) {
+export function ConvenioCards({ data, total }: ConvenioCardsProps) {
   const navigate = useNavigate();
-  
-  // Filtrar apenas atividades do DP
-  const dpData = data.filter(item => dpActivityTypes.includes(item.type as DPActivityType));
-  const dpTotal = dpData.reduce((sum, item) => sum + item.count, 0);
+  const convenioTotal = data.reduce((sum, item) => sum + item.count, 0);
 
-  const handleClick = (type: BenefitType) => {
+  const handleClick = (type: ConvenioType) => {
     navigate(`/solicitacoes?benefit_type=${type}`);
   };
 
   return (
-    <Card className="border-2 border-accent/10 shadow-lg animate-fade-in" style={{ animationDelay: '0.3s' }}>
-      <CardHeader className="bg-gradient-to-r from-accent/5 to-transparent pb-4">
+    <Card className="border-2 border-primary/10 shadow-lg animate-fade-in" style={{ animationDelay: '0.35s' }}>
+      <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent pb-4">
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <ClipboardList className="h-5 w-5 text-accent-foreground" />
-            Atividades do DP
+            <Handshake className="h-5 w-5 text-primary" />
+            Convênios
           </div>
-          <span className="text-sm font-normal text-muted-foreground bg-accent/10 px-3 py-1 rounded-full">
-            {dpTotal} solicitações
+          <span className="text-sm font-normal text-muted-foreground bg-primary/10 px-3 py-1 rounded-full">
+            {convenioTotal} solicitações
           </span>
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          {dpData.map((item, index) => {
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {data.map((item, index) => {
             const percentage = total > 0 ? Math.round((item.count / total) * 100) : 0;
             
             return (
@@ -62,7 +56,7 @@ export function BenefitTypeCards({ data, total }: BenefitTypeCardsProps) {
                 key={item.type}
                 className={cn(
                   "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group",
-                  cardStyles[item.type as DPActivityType] || cardStyles.outros,
+                  cardStyles[item.type],
                   "animate-fade-in"
                 )}
                 style={{ animationDelay: `${index * 0.1}s` }}
@@ -70,11 +64,11 @@ export function BenefitTypeCards({ data, total }: BenefitTypeCardsProps) {
               >
                 <CardContent className="p-4 flex flex-col items-center gap-3">
                   <div className="transform transition-transform duration-300 group-hover:scale-110">
-                    <BenefitIcon type={item.type} size="lg" />
+                    <BenefitIcon type={item.type as BenefitType} size="lg" />
                   </div>
                   <div className="text-center">
                     <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">
-                      {dpActivityLabels[item.type as DPActivityType] || 'Outros'}
+                      {convenioLabels[item.type]}
                     </p>
                     <p className="text-lg sm:text-xl font-bold text-foreground mt-1">
                       <AnimatedCounter value={item.count} duration={800 + index * 100} />
