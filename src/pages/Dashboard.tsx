@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
-import { HeroStats } from '@/components/dashboard/HeroStats';
 import { BenefitTypeCards } from '@/components/dashboard/BenefitTypeCards';
 import { format, startOfMonth, endOfMonth, subMonths, differenceInHours, isWithinInterval, startOfDay, endOfDay, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -389,7 +388,7 @@ export default function Dashboard() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 animate-fade-in">
           <div>
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground flex items-center gap-2">
-              <LayoutDashboard className="h-6 w-6 sm:h-7 sm:w-7" />
+              <LayoutDashboard className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
               Dashboard
               <span className="hidden sm:inline"> - Revalle Gestão do DP</span>
             </h1>
@@ -480,13 +479,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Hero Stats Section */}
-        <HeroStats
-          approvalRate={stats.approvalRate}
-          avgResponseTime={stats.avgResponseTime}
-          totalRequests={stats.total}
-          todayRequests={stats.today}
-        />
 
         {/* Stats Grid - 7 KPI Cards with staggered animation */}
         <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 sm:grid-cols-4 lg:grid-cols-7">
