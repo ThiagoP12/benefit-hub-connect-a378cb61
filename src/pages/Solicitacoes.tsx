@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { benefitTypeLabels, statusLabels, BenefitStatus, BenefitType } from '@/types/benefits';
+import { normalizeBenefitType } from '@/lib/benefitType';
 import { BenefitIcon } from '@/components/ui/benefit-icon';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Input } from '@/components/ui/input';
@@ -221,6 +222,7 @@ export default function Solicitacoes() {
 
       const requestsWithProfiles = (requestsData || []).map(req => ({
         ...req,
+        benefit_type: normalizeBenefitType((req as any).benefit_type),
         profile: profilesMap.get(req.user_id) || null
       }));
 
