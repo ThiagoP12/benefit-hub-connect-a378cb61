@@ -215,6 +215,20 @@ export default function Dashboard() {
     });
   };
 
+  // Filter data by user's allowed modules
+  const filterByUserModules = (data: RequestData[]): RequestData[] => {
+    // Admin sees everything
+    if (userRole === 'admin') return data;
+    
+    // If no modules defined, return empty (user has no permissions)
+    if (userModules.length === 0) return [];
+    
+    // Get all benefit_types from user's modules
+    const allowedBenefitTypes = getBenefitTypesFromModules(userModules);
+    
+    return data.filter(req => allowedBenefitTypes.includes(req.benefit_type));
+  };
+
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
@@ -261,20 +275,23 @@ export default function Dashboard() {
         }
       }
 
-      const total = filteredData.length;
+      // Filter by user's module permissions for stats calculation
+      const dataForStats = filterByUserModules(filteredData);
+
+      const total = dataForStats.length;
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
-      const today = filteredData.filter(r => new Date(r.created_at) >= todayStart).length;
+      const today = dataForStats.filter(r => new Date(r.created_at) >= todayStart).length;
 
-      const abertos = filteredData.filter(r => r.status === 'aberta').length;
-      const emAnalise = filteredData.filter(r => r.status === 'em_analise').length;
-      const aprovados = filteredData.filter(r => r.status === 'aprovada').length;
-      const reprovados = filteredData.filter(r => r.status === 'recusada').length;
+      const abertos = dataForStats.filter(r => r.status === 'aberta').length;
+      const emAnalise = dataForStats.filter(r => r.status === 'em_analise').length;
+      const aprovados = dataForStats.filter(r => r.status === 'aprovada').length;
+      const reprovados = dataForStats.filter(r => r.status === 'recusada').length;
 
       const closedRequests = aprovados + reprovados;
       const approvalRate = closedRequests > 0 ? Math.round((aprovados / closedRequests) * 100) : 0;
 
-      const requestsWithResponse = filteredData.filter(r => r.reviewed_at || r.closed_at);
+      const requestsWithResponse = dataForStats.filter(r => r.reviewed_at || r.closed_at);
       let avgResponseTime = 0;
       if (requestsWithResponse.length > 0) {
         const totalHours = requestsWithResponse.reduce((sum, req) => {
@@ -655,7 +672,7 @@ export default function Dashboard() {
             {checkModuleAccess('convenios') && (
               <Card 
                 className={cn(
-                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group animate-fade-in h-[160px]",
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.05] active:scale-[0.95] group animate-fade-in h-[160px]",
                   "hover:border-primary/50 hover:bg-primary/5"
                 )}
                 style={{ animationDelay: '0.35s' }}
@@ -690,7 +707,7 @@ export default function Dashboard() {
             {checkModuleAccess('alteracao_ferias') && (
               <Card 
                 className={cn(
-                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group animate-fade-in h-[160px]",
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.05] active:scale-[0.95] group animate-fade-in h-[160px]",
                   "hover:border-amber-500/50 hover:bg-amber-500/5"
                 )}
                 style={{ animationDelay: '0.4s' }}
@@ -718,7 +735,7 @@ export default function Dashboard() {
             {checkModuleAccess('alteracao_horario') && (
               <Card 
                 className={cn(
-                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group animate-fade-in h-[160px]",
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.05] active:scale-[0.95] group animate-fade-in h-[160px]",
                   "hover:border-violet-500/50 hover:bg-violet-500/5"
                 )}
                 style={{ animationDelay: '0.45s' }}
@@ -746,7 +763,7 @@ export default function Dashboard() {
             {checkModuleAccess('atestado') && (
               <Card 
                 className={cn(
-                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group animate-fade-in h-[160px]",
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.05] active:scale-[0.95] group animate-fade-in h-[160px]",
                   "hover:border-rose-500/50 hover:bg-rose-500/5"
                 )}
                 style={{ animationDelay: '0.5s' }}
@@ -774,7 +791,7 @@ export default function Dashboard() {
             {checkModuleAccess('aviso_folga_falta') && (
               <Card 
                 className={cn(
-                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group animate-fade-in h-[160px]",
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.05] active:scale-[0.95] group animate-fade-in h-[160px]",
                   "hover:border-slate-500/50 hover:bg-slate-500/5"
                 )}
                 style={{ animationDelay: '0.55s' }}
@@ -802,7 +819,7 @@ export default function Dashboard() {
             {checkModuleAccess('beneficios') && (
               <Card 
                 className={cn(
-                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group animate-fade-in h-[160px]",
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.05] active:scale-[0.95] group animate-fade-in h-[160px]",
                   "hover:border-pink-500/50 hover:bg-pink-500/5"
                 )}
                 style={{ animationDelay: '0.6s' }}
@@ -837,7 +854,7 @@ export default function Dashboard() {
             {checkModuleAccess('contracheque') && (
               <Card 
                 className={cn(
-                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group animate-fade-in h-[160px]",
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.05] active:scale-[0.95] group animate-fade-in h-[160px]",
                   "hover:border-emerald-500/50 hover:bg-emerald-500/5"
                 )}
                 style={{ animationDelay: '0.65s' }}
@@ -865,7 +882,7 @@ export default function Dashboard() {
             {checkModuleAccess('relatorio_ponto') && (
               <Card 
                 className={cn(
-                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group animate-fade-in h-[160px]",
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.05] active:scale-[0.95] group animate-fade-in h-[160px]",
                   "hover:border-cyan-500/50 hover:bg-cyan-500/5"
                 )}
                 style={{ animationDelay: '0.7s' }}
@@ -893,7 +910,7 @@ export default function Dashboard() {
             {checkModuleAccess('relato_anomalia') && (
               <Card 
                 className={cn(
-                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group animate-fade-in h-[160px]",
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.05] active:scale-[0.95] group animate-fade-in h-[160px]",
                   "hover:border-orange-600/50 hover:bg-orange-600/5"
                 )}
                 style={{ animationDelay: '0.75s' }}
