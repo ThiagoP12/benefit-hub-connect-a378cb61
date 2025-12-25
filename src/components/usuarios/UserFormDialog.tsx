@@ -17,9 +17,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, Shield, Users, UserCheck } from 'lucide-react';
+import { MODULE_OPTIONS } from '@/lib/moduleMapping';
 
 interface UserWithRole {
   id: string;
@@ -27,6 +29,7 @@ interface UserWithRole {
   email: string;
   full_name: string;
   role: 'admin' | 'gestor' | 'agente_dp';
+  modules?: string[];
 }
 
 type SystemRole = 'admin' | 'gestor' | 'agente_dp';
@@ -51,6 +54,7 @@ export function UserFormDialog({ open, onOpenChange, user, onSuccess }: UserForm
   const [profiles, setProfiles] = useState<{ user_id: string; full_name: string; email: string }[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [searchEmail, setSearchEmail] = useState('');
+  const [selectedModules, setSelectedModules] = useState<string[]>([]);
 
   const isEditing = !!user;
 
@@ -60,15 +64,32 @@ export function UserFormDialog({ open, onOpenChange, user, onSuccess }: UserForm
         setRole(user.role);
         setSelectedUserId(user.user_id);
         setEmail(user.email);
+        fetchUserModules(user.user_id);
       } else {
         setRole('gestor');
         setSelectedUserId('');
         setEmail('');
         setSearchEmail('');
+        setSelectedModules([]);
       }
       fetchProfiles();
     }
   }, [open, user]);
+
+  const fetchUserModules = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_module_permissions')
+        .select('module')
+        .eq('user_id', userId);
+
+      if (error) throw error;
+      setSelectedModules(data?.map(d => d.module) || []);
+    } catch (err) {
+      console.error('Error fetching user modules:', err);
+      setSelectedModules([]);
+    }
+  };
 
   const fetchProfiles = async () => {
     try {
@@ -84,16 +105,40 @@ export function UserFormDialog({ open, onOpenChange, user, onSuccess }: UserForm
     }
   };
 
+  const toggleModule = (moduleValue: string, checked: boolean) => {
+    if (checked) {
+      setSelectedModules(prev => [...prev, moduleValue]);
+    } else {
+      setSelectedModules(prev => prev.filter(m => m !== moduleValue));
+    }
+  };
+
+  const selectAllModules = () => {
+    setSelectedModules(MODULE_OPTIONS.map(m => m.value));
+  };
+
+  const clearAllModules = () => {
+    setSelectedModules([]);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!isEditing && !selectedUserId) {
+    const targetUserId = isEditing ? user?.user_id : selectedUserId;
+    
+    if (!targetUserId) {
       toast.error('Selecione um colaborador');
       return;
     }
 
     if (!role) {
       toast.error('Selecione uma função');
+      return;
+    }
+
+    // Admin não precisa de módulos (tem acesso a tudo)
+    if (role !== 'admin' && selectedModules.length === 0) {
+      toast.error('Selecione pelo menos um módulo de acesso');
       return;
     }
 
@@ -108,13 +153,12 @@ export function UserFormDialog({ open, onOpenChange, user, onSuccess }: UserForm
           .eq('id', user.id);
 
         if (error) throw error;
-        toast.success('Função atualizada com sucesso');
       } else {
         // Check if user already has a system role
         const { data: existingRole, error: checkError } = await supabase
           .from('user_roles')
           .select('id, role')
-          .eq('user_id', selectedUserId)
+          .eq('user_id', targetUserId)
           .in('role', ['admin', 'gestor', 'agente_dp'])
           .maybeSingle();
 
@@ -129,12 +173,33 @@ export function UserFormDialog({ open, onOpenChange, user, onSuccess }: UserForm
         // Insert new role
         const { error } = await supabase
           .from('user_roles')
-          .insert({ user_id: selectedUserId, role });
+          .insert({ user_id: targetUserId, role });
 
         if (error) throw error;
-        toast.success('Usuário adicionado com sucesso');
       }
 
+      // Update module permissions (skip for admin as they have access to all)
+      // First delete existing permissions
+      await supabase
+        .from('user_module_permissions')
+        .delete()
+        .eq('user_id', targetUserId);
+
+      // Insert new permissions (only if not admin)
+      if (role !== 'admin' && selectedModules.length > 0) {
+        const permissions = selectedModules.map(module => ({
+          user_id: targetUserId,
+          module: module
+        }));
+
+        const { error: permError } = await supabase
+          .from('user_module_permissions')
+          .insert(permissions);
+
+        if (permError) throw permError;
+      }
+
+      toast.success(isEditing ? 'Função atualizada com sucesso' : 'Usuário adicionado com sucesso');
       onSuccess();
       onOpenChange(false);
     } catch (err: any) {
@@ -152,7 +217,7 @@ export function UserFormDialog({ open, onOpenChange, user, onSuccess }: UserForm
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5 text-primary" />
@@ -160,7 +225,7 @@ export function UserFormDialog({ open, onOpenChange, user, onSuccess }: UserForm
           </DialogTitle>
           <DialogDescription>
             {isEditing 
-              ? 'Altere a função deste usuário no sistema.'
+              ? 'Altere a função e os módulos de acesso deste usuário.'
               : 'Selecione um colaborador e atribua uma função de sistema.'}
           </DialogDescription>
         </DialogHeader>
@@ -232,6 +297,65 @@ export function UserFormDialog({ open, onOpenChange, user, onSuccess }: UserForm
               </SelectContent>
             </Select>
           </div>
+
+          {/* Módulos de Acesso */}
+          {role !== 'admin' && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Módulos de Acesso</Label>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={selectAllModules}
+                  >
+                    Selecionar todos
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs text-muted-foreground"
+                    onClick={clearAllModules}
+                  >
+                    Limpar
+                  </Button>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 p-3 border rounded-lg bg-muted/30">
+                {MODULE_OPTIONS.map((module) => (
+                  <div key={module.value} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`module-${module.value}`}
+                      checked={selectedModules.includes(module.value)}
+                      onCheckedChange={(checked) => toggleModule(module.value, !!checked)}
+                    />
+                    <label
+                      htmlFor={`module-${module.value}`}
+                      className="text-sm cursor-pointer flex items-center gap-1.5"
+                    >
+                      <span>{module.icon}</span>
+                      <span>{module.label}</span>
+                    </label>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Selecione os módulos que este usuário poderá visualizar e atender.
+              </p>
+            </div>
+          )}
+
+          {role === 'admin' && (
+            <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+              <p className="text-sm text-primary flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                Administradores têm acesso a todos os módulos automaticamente.
+              </p>
+            </div>
+          )}
 
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
