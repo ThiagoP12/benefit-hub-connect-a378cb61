@@ -333,12 +333,20 @@ export default function Solicitacoes() {
       matchesDate = isWithinInterval(requestDate, { start: from, end: to });
     }
 
-    // Module permissions filter (skip for admin, they see all)
+    // Module permissions filter
+    // - Admin: vê tudo
+    // - Colaborador: vê apenas os próprios (já filtrado por RLS)
+    // - Gestor/Agente DP: precisa ter permissões configuradas
     let matchesModulePermission = true;
-    if (userRole !== 'admin' && userRole !== 'colaborador' && allowedBenefitTypes.length > 0) {
-      matchesModulePermission = allowedBenefitTypes.includes(request.benefit_type);
+    if (userRole === 'gestor' || userRole === 'agente_dp') {
+      if (allowedBenefitTypes.length > 0) {
+        // Tem permissões configuradas - verificar se o tipo está permitido
+        matchesModulePermission = allowedBenefitTypes.includes(request.benefit_type);
+      } else {
+        // Não tem permissões configuradas - não pode ver nenhum chamado
+        matchesModulePermission = false;
+      }
     }
-    // Colaborador only sees their own requests (already filtered by RLS)
 
     return matchesSearch && matchesStatus && matchesType && matchesUnit && matchesDate && matchesModulePermission;
   });
