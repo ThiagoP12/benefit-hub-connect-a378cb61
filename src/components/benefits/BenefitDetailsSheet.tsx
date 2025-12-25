@@ -43,10 +43,12 @@ import {
   MessageSquare,
   AlertTriangle,
   Clock,
+  Trash2,
 } from "lucide-react";
 import { benefitTypeLabels, type BenefitStatus } from "@/types/benefits";
 import { formatCpf, cn } from "@/lib/utils";
 import { getWhatsAppLink, getRelativeTime } from "@/lib/formatters";
+import { useAuth } from "@/contexts/AuthContext";
 import { RequestMessagesChat } from "./RequestMessagesChat";
 
 interface BenefitDetailsSheetProps {
@@ -106,7 +108,11 @@ export function BenefitDetailsSheet({
   const [totalInstallments, setTotalInstallments] = useState("1");
   const [activeTab, setActiveTab] = useState("details");
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [hasNewMessages, setHasNewMessages] = useState(false);
+  
+  const { userRole } = useAuth();
 
   useEffect(() => {
     setStatus(request.status);
@@ -118,8 +124,55 @@ export function BenefitDetailsSheet({
     setTotalInstallments("1");
     setActiveTab("details");
     setShowBlockConfirm(false);
+    setShowDeleteConfirm(false);
     setHasNewMessages(false);
   }, [request.id, request.status, request.rejection_reason, request.closing_message, request.pdf_url]);
+
+  // Delete request handler (admin only)
+  const handleDeleteRequest = async () => {
+    if (userRole !== 'admin') return;
+    
+    setDeleting(true);
+    try {
+      // Delete related messages first
+      const { error: messagesError } = await supabase
+        .from('request_messages')
+        .delete()
+        .eq('benefit_request_id', request.id);
+      
+      if (messagesError) {
+        console.error('Error deleting messages:', messagesError);
+      }
+
+      // Delete related payment receipts
+      const { error: receiptsError } = await supabase
+        .from('payment_receipts')
+        .delete()
+        .eq('benefit_request_id', request.id);
+      
+      if (receiptsError) {
+        console.error('Error deleting receipts:', receiptsError);
+      }
+
+      // Delete the benefit request
+      const { error: requestError } = await supabase
+        .from('benefit_requests')
+        .delete()
+        .eq('id', request.id);
+
+      if (requestError) throw requestError;
+
+      toast.success(`Protocolo ${request.protocol} excluído com sucesso`);
+      setShowDeleteConfirm(false);
+      onOpenChange(false);
+      onSuccess?.();
+    } catch (error: any) {
+      console.error('Error deleting request:', error);
+      toast.error('Erro ao excluir protocolo: ' + error.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const handleApprove = () => {
     setStatus("aprovada");
@@ -289,11 +342,26 @@ export function BenefitDetailsSheet({
         {/* Header fixo */}
         <SheetHeader className="p-6 pb-4 border-b border-border">
           <div className="flex items-center justify-between">
-            <div>
-              <SheetTitle className="text-lg">Detalhes do Protocolo</SheetTitle>
-              <p className="text-sm text-muted-foreground font-mono mt-1">
-                {request.protocol}
-              </p>
+            <div className="flex items-center gap-2">
+              <div>
+                <SheetTitle className="text-lg">Detalhes do Protocolo</SheetTitle>
+                <p className="text-sm text-muted-foreground font-mono mt-1">
+                  {request.protocol}
+                </p>
+              </div>
+              {/* Delete button for admin only */}
+              {userRole === 'admin' && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  disabled={loading || deleting}
+                  title="Excluir protocolo"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
 
             {/* Navegação */}
@@ -665,6 +733,38 @@ export function BenefitDetailsSheet({
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
               <AlertDialogAction onClick={handleSend} className="bg-warning text-warning-foreground hover:bg-warning/90">
                 Confirmar Aprovação
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <Trash2 className="h-5 w-5 text-destructive" />
+                Excluir Protocolo
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir o protocolo <strong>{request.protocol}</strong>?
+                <br /><br />
+                Esta ação é <strong>irreversível</strong> e irá remover:
+                <ul className="list-disc list-inside mt-2 space-y-1">
+                  <li>O protocolo e todos os seus dados</li>
+                  <li>Todas as mensagens relacionadas</li>
+                  <li>Todos os comprovantes anexados</li>
+                </ul>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleDeleteRequest} 
+                disabled={deleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleting ? "Excluindo..." : "Excluir Protocolo"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
