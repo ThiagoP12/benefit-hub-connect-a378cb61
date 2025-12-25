@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { roleLabels, UserRole } from '@/types/benefits';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { Search, Building2, Calendar, Phone, Briefcase, History, Wallet, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,6 +13,7 @@ import { ImportCSVDialog } from '@/components/colaboradores/ImportCSVDialog';
 import { DeleteColaboradorDialog } from '@/components/colaboradores/DeleteColaboradorDialog';
 import { EditColaboradorDialog } from '@/components/colaboradores/EditColaboradorDialog';
 import { ColaboradorHistorySheet } from '@/components/colaboradores/ColaboradorHistorySheet';
+import { ColaboradoresStats } from '@/components/colaboradores/ColaboradoresStats';
 import { PaginationControls } from '@/components/ui/pagination-controls';
 
 const DEPARTAMENTOS_LABELS: Record<string, string> = {
@@ -120,6 +122,27 @@ export default function Colaboradores() {
     (profile.cpf && profile.cpf.includes(search))
   );
 
+  // Stats calculations
+  const stats = useMemo(() => {
+    const byDepartment: Record<string, number> = {};
+    let exceededLimit = 0;
+
+    profiles.forEach((profile) => {
+      const dept = profile.departamento || 'Sem Departamento';
+      byDepartment[dept] = (byDepartment[dept] || 0) + 1;
+
+      if (profile.credit_limit && profile.credit_used >= profile.credit_limit) {
+        exceededLimit++;
+      }
+    });
+
+    return {
+      total: profiles.length,
+      byDepartment,
+      exceededLimit,
+    };
+  }, [profiles]);
+
   const getRoleLabel = (profile: Profile) => {
     const role = profile.user_roles?.[0]?.role || 'colaborador';
     return roleLabels[role] || 'Colaborador';
@@ -128,6 +151,17 @@ export default function Colaboradores() {
   const getRoleVariant = (profile: Profile) => {
     const role = profile.user_roles?.[0]?.role;
     return role === 'admin' ? 'default' : 'secondary';
+  };
+
+  const getCreditPercentage = (profile: Profile) => {
+    if (!profile.credit_limit || profile.credit_limit === 0) return 0;
+    return Math.min((profile.credit_used / profile.credit_limit) * 100, 100);
+  };
+
+  const getCreditColor = (percentage: number) => {
+    if (percentage >= 100) return 'bg-destructive';
+    if (percentage >= 80) return 'bg-warning';
+    return 'bg-success';
   };
 
   const totalPages = Math.ceil(filteredProfiles.length / itemsPerPage);
@@ -152,6 +186,15 @@ export default function Colaboradores() {
             <NewColaboradorDialog onSuccess={fetchProfiles} />
           </div>
         </div>
+
+        {/* Stats Cards */}
+        {!loading && (
+          <ColaboradoresStats
+            total={stats.total}
+            byDepartment={stats.byDepartment}
+            exceededLimit={stats.exceededLimit}
+          />
+        )}
 
         <div className="flex items-center gap-4 rounded-xl border border-border bg-card p-4">
           <div className="relative flex-1">
@@ -183,63 +226,82 @@ export default function Colaboradores() {
               Nenhum colaborador encontrado
             </div>
           ) : (
-            paginatedProfiles.map((profile) => (
-              <div key={profile.id} className="rounded-xl border border-border bg-card p-5 hover:shadow-md transition-all">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-lg font-semibold">
-                    {profile.full_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+            paginatedProfiles.map((profile) => {
+              const creditPercentage = getCreditPercentage(profile);
+              return (
+                <div key={profile.id} className="rounded-xl border border-border bg-card p-5 hover:shadow-md transition-all">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary text-lg font-semibold">
+                      {profile.full_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-foreground truncate">{profile.full_name}</h3>
+                      {profile.cpf && (
+                        <p className="text-sm text-muted-foreground truncate">
+                          CPF: {profile.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-foreground truncate">{profile.full_name}</h3>
-                    {profile.cpf && (
-                      <p className="text-sm text-muted-foreground truncate">
-                        CPF: {profile.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')}
-                      </p>
-                    )}
-                  </div>
-                </div>
 
-                <div className="mt-4 space-y-2">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Calendar className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{profile.birthday || '-'}</span>
+                  <div className="mt-4 space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Calendar className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{profile.birthday || '-'}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Phone className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{profile.phone || '-'}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Building2 className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{profile.units?.name || '-'}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Briefcase className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{profile.position || '-'}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Building2 className="h-4 w-4 opacity-70 shrink-0" />
+                      <span className="text-xs truncate">{profile.departamento ? DEPARTAMENTOS_LABELS[profile.departamento] || profile.departamento : '-'}</span>
+                    </div>
+                    
+                    {/* Credit Progress Bar */}
+                    <div className="mt-3 space-y-1.5">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-1.5">
+                          <Wallet className="h-4 w-4 shrink-0 text-primary" />
+                          <span className="text-xs text-muted-foreground">Crédito Utilizado</span>
+                        </div>
+                        <span className={`text-xs font-medium ${creditPercentage >= 100 ? 'text-destructive' : 'text-foreground'}`}>
+                          {creditPercentage.toFixed(0)}%
+                        </span>
+                      </div>
+                      <Progress 
+                        value={creditPercentage} 
+                        className="h-2"
+                        indicatorClassName={getCreditColor(creditPercentage)}
+                      />
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>R$ {profile.credit_used.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                        <span>R$ {(profile.credit_limit || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Phone className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{profile.phone || '-'}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Building2 className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{profile.units?.name || '-'}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Briefcase className="h-4 w-4 shrink-0" />
-                    <span className="truncate">{profile.position || '-'}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Building2 className="h-4 w-4 opacity-70 shrink-0" />
-                    <span className="text-xs truncate">{profile.departamento ? DEPARTAMENTOS_LABELS[profile.departamento] || profile.departamento : '-'}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm mt-2">
-                    <Wallet className="h-4 w-4 shrink-0 text-primary" />
-                    <span className={`font-medium ${profile.credit_limit && profile.credit_used >= profile.credit_limit ? 'text-destructive' : 'text-foreground'}`}>
-                      R$ {profile.credit_used.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} / R$ {(profile.credit_limit || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                </div>
 
-                <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
-                  <Badge variant={getRoleVariant(profile)}>{getRoleLabel(profile)}</Badge>
-                  <div className="flex gap-2">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedColaborador({ user_id: profile.user_id, full_name: profile.full_name }); setHistoryOpen(true); }} title="Histórico">
-                      <History className="h-4 w-4" />
-                    </Button>
-                    <EditColaboradorDialog profile={profile} onSuccess={fetchProfiles} />
-                    <DeleteColaboradorDialog profileId={profile.id} userId={profile.user_id} name={profile.full_name} onSuccess={fetchProfiles} />
+                  <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
+                    <Badge variant={getRoleVariant(profile)}>{getRoleLabel(profile)}</Badge>
+                    <div className="flex gap-2">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setSelectedColaborador({ user_id: profile.user_id, full_name: profile.full_name }); setHistoryOpen(true); }} title="Histórico">
+                        <History className="h-4 w-4" />
+                      </Button>
+                      <EditColaboradorDialog profile={profile} onSuccess={fetchProfiles} />
+                      <DeleteColaboradorDialog profileId={profile.id} userId={profile.user_id} name={profile.full_name} onSuccess={fetchProfiles} />
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
