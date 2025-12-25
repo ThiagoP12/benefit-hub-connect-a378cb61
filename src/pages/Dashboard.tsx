@@ -70,15 +70,17 @@ interface AlertRequest extends RequestData {
 
 type DateFilter = 'all' | '7days' | '30days' | '90days' | 'custom';
 
-// Colors matching benefit types
+// Colors matching benefit types (aligned with database enums)
 const BENEFIT_COLORS: Record<string, string> = {
-  autoescola: '#3B82F6',   // Blue
-  farmacia: '#10B981',     // Emerald
-  oficina: '#F97316',      // Orange
-  vale_gas: '#EF4444',     // Red
-  papelaria: '#8B5CF6',    // Violet
-  otica: '#06B6D4',        // Cyan
-  outros: '#6B7280',       // Gray
+  alteracao_ferias: '#3B82F6',     // Blue
+  aviso_folga_falta: '#F59E0B',    // Amber
+  atestado: '#10B981',             // Emerald
+  contracheque: '#8B5CF6',         // Violet
+  abono_horas: '#06B6D4',          // Cyan
+  alteracao_horario: '#F97316',    // Orange
+  operacao_domingo: '#EF4444',     // Red
+  relatorio_ponto: '#6366F1',      // Indigo
+  outros: '#6B7280',               // Gray
 };
 
 

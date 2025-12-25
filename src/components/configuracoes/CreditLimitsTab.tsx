@@ -47,7 +47,17 @@ export function CreditLimitsTab() {
       }
 
       // For now, create in-memory limits based on benefit types
-      const benefitTypes: BenefitType[] = ['autoescola', 'farmacia', 'oficina', 'vale_gas', 'papelaria', 'otica', 'outros'];
+      const benefitTypes: BenefitType[] = [
+        'alteracao_ferias',
+        'aviso_folga_falta',
+        'atestado',
+        'contracheque',
+        'abono_horas',
+        'alteracao_horario',
+        'operacao_domingo',
+        'relatorio_ponto',
+        'outros',
+      ];
       const defaultLimits: CreditLimit[] = benefitTypes.map((type, index) => ({
         id: `temp-${index}`,
         benefit_type: type,

@@ -16,12 +16,14 @@ interface BenefitTypeCardsProps {
 }
 
 const cardStyles: Record<BenefitType, string> = {
-  autoescola: 'hover:border-blue-500/50 hover:bg-blue-500/5',
-  farmacia: 'hover:border-emerald-500/50 hover:bg-emerald-500/5',
-  oficina: 'hover:border-amber-500/50 hover:bg-amber-500/5',
-  vale_gas: 'hover:border-red-500/50 hover:bg-red-500/5',
-  papelaria: 'hover:border-violet-500/50 hover:bg-violet-500/5',
-  otica: 'hover:border-cyan-500/50 hover:bg-cyan-500/5',
+  alteracao_ferias: 'hover:border-blue-500/50 hover:bg-blue-500/5',
+  aviso_folga_falta: 'hover:border-amber-500/50 hover:bg-amber-500/5',
+  atestado: 'hover:border-emerald-500/50 hover:bg-emerald-500/5',
+  contracheque: 'hover:border-violet-500/50 hover:bg-violet-500/5',
+  abono_horas: 'hover:border-cyan-500/50 hover:bg-cyan-500/5',
+  alteracao_horario: 'hover:border-orange-500/50 hover:bg-orange-500/5',
+  operacao_domingo: 'hover:border-red-500/50 hover:bg-red-500/5',
+  relatorio_ponto: 'hover:border-indigo-500/50 hover:bg-indigo-500/5',
   outros: 'hover:border-gray-500/50 hover:bg-gray-500/5',
 };
 
@@ -33,7 +35,7 @@ export function BenefitTypeCards({ data, total }: BenefitTypeCardsProps) {
   };
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
       {data.map((item, index) => {
         const percentage = total > 0 ? Math.round((item.count / total) * 100) : 0;
         
@@ -42,7 +44,7 @@ export function BenefitTypeCards({ data, total }: BenefitTypeCardsProps) {
             key={item.type}
             className={cn(
               "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group",
-              cardStyles[item.type],
+              cardStyles[item.type] || cardStyles.outros,
               "animate-fade-in"
             )}
             style={{ animationDelay: `${index * 0.1}s` }}
@@ -54,7 +56,7 @@ export function BenefitTypeCards({ data, total }: BenefitTypeCardsProps) {
               </div>
               <div className="text-center">
                 <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">
-                  {benefitTypeLabels[item.type]}
+                  {benefitTypeLabels[item.type] || 'Outros'}
                 </p>
                 <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
                   <AnimatedCounter value={item.count} duration={800 + index * 100} />

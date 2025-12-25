@@ -18,6 +18,8 @@ export type Database = {
         Row: {
           account_id: number | null
           approved_value: number | null
+          attachment_file_name: string | null
+          attachment_url: string | null
           benefit_type: Database["public"]["Enums"]["benefit_type"]
           closed_at: string | null
           closed_by: string | null
@@ -42,6 +44,8 @@ export type Database = {
         Insert: {
           account_id?: number | null
           approved_value?: number | null
+          attachment_file_name?: string | null
+          attachment_url?: string | null
           benefit_type: Database["public"]["Enums"]["benefit_type"]
           closed_at?: string | null
           closed_by?: string | null
@@ -66,6 +70,8 @@ export type Database = {
         Update: {
           account_id?: number | null
           approved_value?: number | null
+          attachment_file_name?: string | null
+          attachment_url?: string | null
           benefit_type?: Database["public"]["Enums"]["benefit_type"]
           closed_at?: string | null
           closed_by?: string | null
@@ -625,13 +631,15 @@ export type Database = {
       app_role: "admin" | "gestor" | "colaborador" | "agente_dp"
       benefit_status: "aberta" | "em_analise" | "aprovada" | "recusada"
       benefit_type:
-        | "autoescola"
-        | "farmacia"
-        | "oficina"
-        | "vale_gas"
-        | "papelaria"
-        | "otica"
+        | "alteracao_ferias"
+        | "aviso_folga_falta"
+        | "atestado"
+        | "contracheque"
+        | "abono_horas"
+        | "alteracao_horario"
         | "outros"
+        | "operacao_domingo"
+        | "relatorio_ponto"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -762,13 +770,15 @@ export const Constants = {
       app_role: ["admin", "gestor", "colaborador", "agente_dp"],
       benefit_status: ["aberta", "em_analise", "aprovada", "recusada"],
       benefit_type: [
-        "autoescola",
-        "farmacia",
-        "oficina",
-        "vale_gas",
-        "papelaria",
-        "otica",
+        "alteracao_ferias",
+        "aviso_folga_falta",
+        "atestado",
+        "contracheque",
+        "abono_horas",
+        "alteracao_horario",
         "outros",
+        "operacao_domingo",
+        "relatorio_ponto",
       ],
     },
   },

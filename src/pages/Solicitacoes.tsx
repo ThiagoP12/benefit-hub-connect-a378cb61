@@ -614,8 +614,8 @@ export default function Solicitacoes() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <BenefitIcon type={request.benefit_type} size="lg" />
-                        <span className="hidden sm:inline text-sm">{benefitTypeLabels[request.benefit_type]}</span>
+                        <BenefitIcon type={request.benefit_type} size="sm" />
+                        <span className="text-sm truncate max-w-[120px]">{benefitTypeLabels[request.benefit_type] || request.benefit_type}</span>
                       </div>
                     </TableCell>
                     <TableCell>

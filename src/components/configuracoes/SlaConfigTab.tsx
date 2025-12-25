@@ -22,7 +22,17 @@ interface ApprovalCutoff {
   day: number;
 }
 
-const benefitTypes: BenefitType[] = ['autoescola', 'farmacia', 'oficina', 'vale_gas', 'papelaria', 'otica', 'outros'];
+const benefitTypes: BenefitType[] = [
+  'alteracao_ferias',
+  'aviso_folga_falta',
+  'atestado',
+  'contracheque',
+  'abono_horas',
+  'alteracao_horario',
+  'operacao_domingo',
+  'relatorio_ponto',
+  'outros',
+];
 
 export function SlaConfigTab() {
   const [configs, setConfigs] = useState<SlaConfig[]>([]);
