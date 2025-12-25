@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
-import { BenefitIcon, BenefitType } from '@/components/ui/benefit-icon';
-import { benefitTypeLabels } from '@/types/benefits';
+import { BenefitIcon } from '@/components/ui/benefit-icon';
+import { BenefitType, benefitTypeLabels } from '@/types/benefits';
 import { cn } from '@/lib/utils';
 import { AnimatedCounter } from './AnimatedCounter';
 
@@ -23,14 +23,6 @@ const cardStyles: Record<BenefitType, string> = {
   papelaria: 'hover:border-violet-500/50 hover:bg-violet-500/5',
   otica: 'hover:border-cyan-500/50 hover:bg-cyan-500/5',
   outros: 'hover:border-gray-500/50 hover:bg-gray-500/5',
-  alteracao_ferias: 'hover:border-teal-500/50 hover:bg-teal-500/5',
-  aviso_folga_falta: 'hover:border-orange-500/50 hover:bg-orange-500/5',
-  atestado: 'hover:border-rose-500/50 hover:bg-rose-500/5',
-  contracheque: 'hover:border-green-500/50 hover:bg-green-500/5',
-  abono_horas: 'hover:border-indigo-500/50 hover:bg-indigo-500/5',
-  alteracao_horario: 'hover:border-purple-500/50 hover:bg-purple-500/5',
-  operacao_domingo: 'hover:border-pink-500/50 hover:bg-pink-500/5',
-  relatorio_ponto: 'hover:border-sky-500/50 hover:bg-sky-500/5',
 };
 
 export function BenefitTypeCards({ data, total }: BenefitTypeCardsProps) {

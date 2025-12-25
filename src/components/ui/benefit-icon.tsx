@@ -1,22 +1,6 @@
 import { cn } from '@/lib/utils';
-import { Car, Pill, Wrench, Flame, BookOpen, Glasses, Package, Palmtree, ClipboardList, Stethoscope, Receipt, Clock, Timer, Calendar, FileBarChart } from 'lucide-react';
-
-export type BenefitType = 
-  | 'autoescola' 
-  | 'farmacia' 
-  | 'oficina' 
-  | 'vale_gas' 
-  | 'papelaria' 
-  | 'otica' 
-  | 'outros'
-  | 'alteracao_ferias'
-  | 'aviso_folga_falta'
-  | 'atestado'
-  | 'contracheque'
-  | 'abono_horas'
-  | 'alteracao_horario'
-  | 'operacao_domingo'
-  | 'relatorio_ponto';
+import { Car, Pill, Wrench, Flame, BookOpen, Glasses, Package } from 'lucide-react';
+import type { BenefitType } from '@/types/benefits';
 
 interface BenefitIconProps {
   type: BenefitType;
@@ -74,46 +58,6 @@ const iconConfig: Record<BenefitType, { icon: typeof Car; bgColor: string; iconC
     bgColor: 'bg-gray-500/15 dark:bg-gray-400/20',
     iconColor: 'text-gray-600 dark:text-gray-400',
   },
-  alteracao_ferias: {
-    icon: Palmtree,
-    bgColor: 'bg-teal-500/15 dark:bg-teal-400/20',
-    iconColor: 'text-teal-600 dark:text-teal-400',
-  },
-  aviso_folga_falta: {
-    icon: ClipboardList,
-    bgColor: 'bg-orange-500/15 dark:bg-orange-400/20',
-    iconColor: 'text-orange-600 dark:text-orange-400',
-  },
-  atestado: {
-    icon: Stethoscope,
-    bgColor: 'bg-rose-500/15 dark:bg-rose-400/20',
-    iconColor: 'text-rose-600 dark:text-rose-400',
-  },
-  contracheque: {
-    icon: Receipt,
-    bgColor: 'bg-green-500/15 dark:bg-green-400/20',
-    iconColor: 'text-green-600 dark:text-green-400',
-  },
-  abono_horas: {
-    icon: Clock,
-    bgColor: 'bg-indigo-500/15 dark:bg-indigo-400/20',
-    iconColor: 'text-indigo-600 dark:text-indigo-400',
-  },
-  alteracao_horario: {
-    icon: Timer,
-    bgColor: 'bg-purple-500/15 dark:bg-purple-400/20',
-    iconColor: 'text-purple-600 dark:text-purple-400',
-  },
-  operacao_domingo: {
-    icon: Calendar,
-    bgColor: 'bg-pink-500/15 dark:bg-pink-400/20',
-    iconColor: 'text-pink-600 dark:text-pink-400',
-  },
-  relatorio_ponto: {
-    icon: FileBarChart,
-    bgColor: 'bg-sky-500/15 dark:bg-sky-400/20',
-    iconColor: 'text-sky-600 dark:text-sky-400',
-  },
 };
 
 export function BenefitIcon({ type, size = 'md', className }: BenefitIconProps) {
@@ -143,12 +87,5 @@ export const benefitIconColors: Record<BenefitType, string> = {
   papelaria: '#8B5CF6',
   otica: '#06B6D4',
   outros: '#6B7280',
-  alteracao_ferias: '#14B8A6',
-  aviso_folga_falta: '#F97316',
-  atestado: '#F43F5E',
-  contracheque: '#22C55E',
-  abono_horas: '#6366F1',
-  alteracao_horario: '#A855F7',
-  operacao_domingo: '#EC4899',
-  relatorio_ponto: '#0EA5E9',
 };
+
