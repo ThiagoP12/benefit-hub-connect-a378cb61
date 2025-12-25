@@ -640,6 +640,12 @@ export type Database = {
         | "outros"
         | "operacao_domingo"
         | "relatorio_ponto"
+        | "autoescola"
+        | "farmacia"
+        | "oficina"
+        | "vale_gas"
+        | "papelaria"
+        | "otica"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -779,6 +785,12 @@ export const Constants = {
         "outros",
         "operacao_domingo",
         "relatorio_ponto",
+        "autoescola",
+        "farmacia",
+        "oficina",
+        "vale_gas",
+        "papelaria",
+        "otica",
       ],
     },
   },
