@@ -1,7 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { Breadcrumbs } from './Breadcrumbs';
-import { GlobalSearch } from './GlobalSearch';
 import { Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -35,13 +34,8 @@ export function MainLayout({ children }: MainLayoutProps) {
         <h1 className="ml-3 text-lg font-semibold text-sidebar-foreground">Revalle</h1>
       </div>
 
-      {/* Desktop Top Bar with Global Search */}
-      <div className="hidden lg:flex fixed top-0 left-64 right-0 z-40 h-14 bg-background/80 backdrop-blur-sm border-b border-border items-center justify-end px-6">
-        <GlobalSearch />
-      </div>
-
       {/* Main Content */}
-      <main className="lg:pl-64 pt-14">
+      <main className="lg:pl-64 pt-14 lg:pt-0">
         <div className="p-4 sm:p-6 lg:p-8">
           <Breadcrumbs />
           {children}
