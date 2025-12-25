@@ -27,7 +27,7 @@ import { exportToCSV, exportToExcel, formatDateTimeForExport } from '@/lib/expor
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
-const filteredBenefitTypes = benefitTypes.filter(t => t !== 'outros') as ConvenioBenefitType[];
+const filteredBenefitTypes = benefitTypes as ConvenioBenefitType[];
 
 interface DashboardStats {
   total: number;
