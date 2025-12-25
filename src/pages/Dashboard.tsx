@@ -70,14 +70,16 @@ interface AlertRequest extends RequestData {
 
 type DateFilter = 'all' | '7days' | '30days' | '90days' | 'custom';
 
-const COLORS = [
-  'hsl(217, 91%, 60%)',
-  'hsl(160, 84%, 39%)',
-  'hsl(25, 95%, 53%)',
-  'hsl(38, 92%, 50%)',
-  'hsl(280, 65%, 60%)',
-  'hsl(187, 85%, 43%)',
-];
+// Colors matching benefit types
+const BENEFIT_COLORS: Record<string, string> = {
+  autoescola: '#3B82F6',   // Blue
+  farmacia: '#10B981',     // Emerald
+  oficina: '#F97316',      // Orange
+  vale_gas: '#EF4444',     // Red
+  papelaria: '#8B5CF6',    // Violet
+  otica: '#06B6D4',        // Cyan
+  outros: '#6B7280',       // Gray
+};
 
 
 export default function Dashboard() {
@@ -349,12 +351,14 @@ export default function Dashboard() {
     return months;
   }, [allRequests, dateFilter, customDateRange]);
 
-  const pieData = benefitTypeData.map((item, index) => ({
-    name: benefitTypeLabels[item.type],
-    value: item.count,
-    color: COLORS[index % COLORS.length],
-    type: item.type,
-  }));
+  const pieData = benefitTypeData
+    .filter(item => item.count > 0)
+    .map((item) => ({
+      name: benefitTypeLabels[item.type],
+      value: item.count,
+      color: BENEFIT_COLORS[item.type] || BENEFIT_COLORS.outros,
+      type: item.type,
+    }));
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -587,14 +591,14 @@ export default function Dashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-[300px]">
+              <div className="h-[320px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <defs>
-                      {COLORS.map((color, index) => (
-                        <linearGradient key={`pieGradient-${index}`} id={`pieGradient-${index}`} x1="0" y1="0" x2="1" y2="1">
-                          <stop offset="0%" stopColor={color} stopOpacity={1}/>
-                          <stop offset="100%" stopColor={color} stopOpacity={0.7}/>
+                      {pieData.map((entry, index) => (
+                        <linearGradient key={`pieGradient-${index}`} id={`pieGradient-${entry.type}`} x1="0" y1="0" x2="1" y2="1">
+                          <stop offset="0%" stopColor={entry.color} stopOpacity={1}/>
+                          <stop offset="100%" stopColor={entry.color} stopOpacity={0.75}/>
                         </linearGradient>
                       ))}
                     </defs>
@@ -602,30 +606,51 @@ export default function Dashboard() {
                       data={pieData}
                       cx="50%"
                       cy="50%"
-                      labelLine={false}
-                      outerRadius={100}
-                      innerRadius={40}
-                      fill="#8884d8"
+                      labelLine={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1 }}
+                      outerRadius={90}
+                      innerRadius={50}
+                      paddingAngle={2}
                       dataKey="value"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      label={({ name, percent, cx, cy, midAngle, outerRadius }) => {
+                        const RADIAN = Math.PI / 180;
+                        const radius = outerRadius * 1.35;
+                        const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                        const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                        const percentage = (percent * 100).toFixed(0);
+                        return (
+                          <text
+                            x={x}
+                            y={y}
+                            fill="hsl(var(--foreground))"
+                            textAnchor={x > cx ? 'start' : 'end'}
+                            dominantBaseline="central"
+                            className="text-xs font-medium"
+                          >
+                            {`${name} ${percentage}%`}
+                          </text>
+                        );
+                      }}
                       stroke="hsl(var(--background))"
-                      strokeWidth={2}
+                      strokeWidth={3}
                     >
-                      {pieData.map((entry, index) => (
+                      {pieData.map((entry) => (
                         <Cell 
-                          key={`cell-${index}`} 
-                          fill={`url(#pieGradient-${index})`}
-                          className="hover:opacity-80 transition-opacity cursor-pointer"
+                          key={`cell-${entry.type}`} 
+                          fill={`url(#pieGradient-${entry.type})`}
+                          className="hover:opacity-90 transition-opacity cursor-pointer drop-shadow-md"
                         />
                       ))}
                     </Pie>
                     <Tooltip 
+                      formatter={(value: number) => [`${value} solicitações`, 'Quantidade']}
                       contentStyle={{ 
                         backgroundColor: 'hsl(var(--card))', 
                         border: '2px solid hsl(var(--border))',
                         borderRadius: '12px',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                      }} 
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                        padding: '12px 16px'
+                      }}
+                      labelStyle={{ fontWeight: 'bold', marginBottom: '4px' }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
