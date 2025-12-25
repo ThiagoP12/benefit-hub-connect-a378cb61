@@ -7,7 +7,7 @@ import { BenefitTypeCards } from '@/components/dashboard/BenefitTypeCards';
 import { BeneficioBenefitTypeCards } from '@/components/dashboard/BeneficioBenefitTypeCards';
 import { format, startOfMonth, endOfMonth, subMonths, differenceInHours, isWithinInterval, startOfDay, endOfDay, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { FileText, Clock, CheckCircle, FolderOpen, TrendingUp, Eye, Download, FileSpreadsheet, Calendar, Timer, LayoutDashboard, Building2, XCircle, AlertTriangle, Hash, User, Package, CircleDot, Settings, RefreshCw, ChevronDown, Briefcase, Stethoscope, ClipboardList, Palmtree, Receipt, FileCheck, AlertOctagon } from 'lucide-react';
+import { FileText, Clock, CheckCircle, FolderOpen, TrendingUp, Eye, Download, FileSpreadsheet, Calendar, Timer, LayoutDashboard, Building2, XCircle, Hash, User, Package, CircleDot, Settings, RefreshCw, ChevronDown, Briefcase, Stethoscope, ClipboardList, Palmtree, Receipt, FileCheck, AlertOctagon, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { BenefitType, ConvenioBenefitType, BeneficioBenefitType, benefitTypeLabels, benefitTypeEmojis, statusLabels } from '@/types/benefits';
 import { BenefitIcon } from '@/components/ui/benefit-icon';
@@ -48,6 +48,7 @@ interface RequestData {
   user_id: string;
   created_at: string;
   reviewed_at?: string | null;
+  reviewed_by?: string | null;
   closed_at?: string | null;
 }
 
@@ -64,13 +65,13 @@ interface SlaConfig {
   yellow_hours: number;
 }
 
-interface AlertRequest extends RequestData {
-  profile?: {
-    full_name: string;
-    unit?: { name: string } | null;
-  } | null;
-  hoursOpen: number;
-  slaStatus: 'yellow' | 'red';
+interface AgentStats {
+  agent_id: string;
+  agent_name: string;
+  total: number;
+  em_analise: number;
+  aprovados: number;
+  recusados: number;
 }
 
 // Category filter types
@@ -107,7 +108,7 @@ export default function Dashboard() {
   const [relatoAnomaliaCount, setRelatoAnomaliaCount] = useState<number>(0);
   const [allRequests, setAllRequests] = useState<RequestData[]>([]);
   const [recentRequests, setRecentRequests] = useState<RecentRequest[]>([]);
-  const [alertRequests, setAlertRequests] = useState<AlertRequest[]>([]);
+  const [agentStats, setAgentStats] = useState<AgentStats[]>([]);
   const [slaConfigs, setSlaConfigs] = useState<SlaConfig[]>([]);
   const [allRequestsForExport, setAllRequestsForExport] = useState<any[]>([]);
   const [units, setUnits] = useState<{ id: string; name: string }[]>([]);
@@ -178,7 +179,7 @@ export default function Dashboard() {
     try {
       const { data, error } = await supabase
         .from('benefit_requests')
-        .select('id, protocol, status, benefit_type, user_id, created_at, reviewed_at, closed_at')
+        .select('id, protocol, status, benefit_type, user_id, created_at, reviewed_at, reviewed_by, closed_at')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -285,39 +286,47 @@ export default function Dashboard() {
       
       setRecentRequests(recentWithProfiles);
 
-      const getSlaForBenefitType = (benefitType: string) => {
-        const config = slaConfigs.find(c => c.benefit_type === benefitType);
-        return config || { green_hours: 2, yellow_hours: 6 };
-      };
-
-      const openRequests = filteredData.filter(r => r.status === 'aberta' || r.status === 'em_analise');
-      const now = new Date();
+      // Fetch agent stats - agrupando por reviewed_by
+      const requestsWithReviewedBy = rawData.filter(r => r.reviewed_by);
+      const agentIds = [...new Set(requestsWithReviewedBy.map(r => r.reviewed_by))];
       
-      const alertReqs = openRequests
-        .map(req => {
-          const sla = getSlaForBenefitType(req.benefit_type);
-          const hoursOpen = differenceInHours(now, new Date(req.created_at));
-          let slaStatus: 'yellow' | 'red' = 'yellow';
-          
-          if (hoursOpen > sla.yellow_hours) {
-            slaStatus = 'red';
-          }
-          
-          const isAlert = hoursOpen > sla.green_hours;
-          
-          return {
-            ...req,
-            profile: profilesMap.get(req.user_id) || null,
-            hoursOpen,
-            slaStatus,
-            isAlert
+      if (agentIds.length > 0) {
+        const { data: agentProfiles } = await supabase
+          .from('profiles')
+          .select('user_id, full_name')
+          .in('user_id', agentIds);
+        
+        const agentProfilesMap = new Map(agentProfiles?.map(p => [p.user_id, p.full_name]) || []);
+        
+        const agentStatsMap = new Map<string, AgentStats>();
+        
+        requestsWithReviewedBy.forEach(req => {
+          const agentId = req.reviewed_by!;
+          const existing = agentStatsMap.get(agentId) || {
+            agent_id: agentId,
+            agent_name: agentProfilesMap.get(agentId) || 'Agente Desconhecido',
+            total: 0,
+            em_analise: 0,
+            aprovados: 0,
+            recusados: 0
           };
-        })
-        .filter(req => req.isAlert)
-        .sort((a, b) => b.hoursOpen - a.hoursOpen)
-        .slice(0, 10) as AlertRequest[];
-      
-      setAlertRequests(alertReqs);
+          
+          existing.total++;
+          if (req.status === 'em_analise') existing.em_analise++;
+          if (req.status === 'aprovada') existing.aprovados++;
+          if (req.status === 'recusada') existing.recusados++;
+          
+          agentStatsMap.set(agentId, existing);
+        });
+        
+        const sortedAgentStats = Array.from(agentStatsMap.values())
+          .sort((a, b) => b.total - a.total);
+        
+        setAgentStats(sortedAgentStats);
+      } else {
+        setAgentStats([]);
+      }
+
       setLastUpdated(new Date());
     } catch (err) {
       console.error('Error in fetchDashboardData:', err);
@@ -979,67 +988,63 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Alert Board */}
-          <Card className="border-2 border-warning/30 shadow-lg hover:shadow-xl transition-all duration-300 animate-fade-in" style={{ animationDelay: '0.5s' }}>
-            <CardHeader className="bg-gradient-to-r from-warning/10 to-transparent">
+          {/* Atendimentos por Agente */}
+          <Card className="border-2 border-primary/30 shadow-lg hover:shadow-xl transition-all duration-300 animate-fade-in" style={{ animationDelay: '0.5s' }}>
+            <CardHeader className="bg-gradient-to-r from-primary/10 to-transparent">
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-warning animate-pulse" />
-                  Quadro de Avisos
+                  <Users className="h-5 w-5 text-primary" />
+                  Atendimentos por Agente
                 </CardTitle>
-                <span className="text-xs text-muted-foreground bg-warning/10 px-2 py-1 rounded-full">
-                  {alertRequests.length} em alerta
+                <span className="text-xs text-muted-foreground bg-primary/10 px-2 py-1 rounded-full">
+                  {agentStats.length} agente{agentStats.length !== 1 ? 's' : ''}
                 </span>
               </div>
             </CardHeader>
             <CardContent>
-              {alertRequests.length === 0 ? (
+              {agentStats.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                  <div className="p-4 rounded-full bg-success/10 mb-3">
-                    <CheckCircle className="h-12 w-12 text-success" />
+                  <div className="p-4 rounded-full bg-muted/50 mb-3">
+                    <Users className="h-12 w-12 text-muted-foreground/50" />
                   </div>
-                  <p className="font-medium text-foreground">Nenhum protocolo em atraso</p>
-                  <p className="text-sm">Todos os protocolos estão dentro do SLA</p>
+                  <p className="font-medium text-foreground">Nenhum atendimento registrado</p>
+                  <p className="text-sm">Os atendimentos aparecerão aqui quando forem realizados</p>
                 </div>
               ) : (
                 <div className="space-y-2 max-h-[280px] overflow-y-auto">
-                  {alertRequests.map((req, index) => (
+                  {agentStats.map((agent, index) => (
                     <div 
-                      key={req.id}
-                      className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer hover:scale-[1.01] transition-all duration-200 animate-fade-in ${
-                        req.slaStatus === 'red' 
-                          ? 'border-destructive/50 bg-destructive/5' 
-                          : 'border-warning/50 bg-warning/5'
-                      }`}
+                      key={agent.agent_id}
+                      className="flex items-center justify-between p-3 rounded-xl border border-border/50 bg-muted/30 hover:bg-muted/50 transition-all duration-200 animate-fade-in"
                       style={{ animationDelay: `${index * 0.05 + 0.5}s` }}
-                      onClick={() => navigate(`/solicitacoes?protocol=${req.protocol}`)}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`p-2.5 rounded-xl ${
-                          req.slaStatus === 'red' ? 'bg-destructive/20' : 'bg-warning/20'
-                        }`}>
-                          {req.slaStatus === 'red' ? (
-                            <XCircle className="h-5 w-5 text-destructive animate-pulse" />
-                          ) : (
-                            <AlertTriangle className="h-5 w-5 text-warning" />
-                          )}
+                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                          <span className="text-primary font-bold text-sm">
+                            {agent.agent_name.charAt(0).toUpperCase()}
+                          </span>
                         </div>
                         <div>
-                          <p className="font-mono font-bold text-sm">{req.protocol}</p>
-                          <p className="text-xs text-muted-foreground">{req.profile?.full_name || 'N/A'}</p>
+                          <p className="font-medium text-sm">{agent.agent_name}</p>
+                          <p className="text-xs text-muted-foreground">{agent.total} atendimento{agent.total !== 1 ? 's' : ''}</p>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className={`font-bold text-lg ${
-                          req.slaStatus === 'red' ? 'text-destructive' : 'text-warning'
-                        }`}>
-                          {req.hoursOpen}h
-                        </p>
-                        <p className={`text-[10px] font-medium uppercase tracking-wide ${
-                          req.slaStatus === 'red' ? 'text-destructive' : 'text-warning'
-                        }`}>
-                          {req.slaStatus === 'red' ? 'Vencido' : 'Atenção'}
-                        </p>
+                      <div className="flex items-center gap-2 flex-wrap justify-end">
+                        {agent.em_analise > 0 && (
+                          <span className="text-xs px-2 py-1 rounded-full bg-info/20 text-info font-medium">
+                            {agent.em_analise} análise
+                          </span>
+                        )}
+                        {agent.aprovados > 0 && (
+                          <span className="text-xs px-2 py-1 rounded-full bg-success/20 text-success font-medium">
+                            {agent.aprovados} ✓
+                          </span>
+                        )}
+                        {agent.recusados > 0 && (
+                          <span className="text-xs px-2 py-1 rounded-full bg-destructive/20 text-destructive font-medium">
+                            {agent.recusados} ✗
+                          </span>
+                        )}
                       </div>
                     </div>
                   ))}
