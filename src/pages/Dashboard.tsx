@@ -7,7 +7,7 @@ import { BenefitTypeCards } from '@/components/dashboard/BenefitTypeCards';
 import { BeneficioBenefitTypeCards } from '@/components/dashboard/BeneficioBenefitTypeCards';
 import { format, startOfMonth, endOfMonth, subMonths, differenceInHours, isWithinInterval, startOfDay, endOfDay, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { FileText, Clock, CheckCircle, FolderOpen, TrendingUp, Eye, Download, FileSpreadsheet, Calendar, Timer, LayoutDashboard, Building2, XCircle, AlertTriangle, Hash, User, Package, CircleDot, Settings, RefreshCw, ChevronDown, Briefcase, Stethoscope, ClipboardList } from 'lucide-react';
+import { FileText, Clock, CheckCircle, FolderOpen, TrendingUp, Eye, Download, FileSpreadsheet, Calendar, Timer, LayoutDashboard, Building2, XCircle, AlertTriangle, Hash, User, Package, CircleDot, Settings, RefreshCw, ChevronDown, Briefcase, Stethoscope, ClipboardList, Palmtree, Receipt, FileCheck, AlertOctagon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { BenefitType, ConvenioBenefitType, BeneficioBenefitType, benefitTypeLabels, benefitTypeEmojis, statusLabels } from '@/types/benefits';
 import { BenefitIcon } from '@/components/ui/benefit-icon';
@@ -98,6 +98,11 @@ export default function Dashboard() {
   const [beneficioBenefitTypeData, setBeneficioBenefitTypeData] = useState<{ type: BeneficioBenefitType; count: number }[]>([]);
   const [avisoFolgaCount, setAvisoFolgaCount] = useState<number>(0);
   const [atestadoCount, setAtestadoCount] = useState<number>(0);
+  const [contrachequeCount, setContrachequeCount] = useState<number>(0);
+  const [relatorioPontoCount, setRelatorioPontoCount] = useState<number>(0);
+  const [alteracaoFeriasCount, setAlteracaoFeriasCount] = useState<number>(0);
+  const [alteracaoHorarioCount, setAlteracaoHorarioCount] = useState<number>(0);
+  const [relatoAnomaliaCount, setRelatoAnomaliaCount] = useState<number>(0);
   const [allRequests, setAllRequests] = useState<RequestData[]>([]);
   const [recentRequests, setRecentRequests] = useState<RecentRequest[]>([]);
   const [alertRequests, setAlertRequests] = useState<AlertRequest[]>([]);
@@ -246,9 +251,14 @@ export default function Dashboard() {
       }));
       setBeneficioBenefitTypeData(beneficioTypeData);
 
-      // Calcular contagens individuais para Aviso de Folga/Falta e Atestado
+      // Calcular contagens individuais para cards DP
       setAvisoFolgaCount(filteredData.filter(r => r.benefit_type === 'aviso_folga_falta').length);
       setAtestadoCount(filteredData.filter(r => r.benefit_type === 'atestado').length);
+      setContrachequeCount(filteredData.filter(r => r.benefit_type === 'contracheque').length);
+      setRelatorioPontoCount(filteredData.filter(r => r.benefit_type === 'relatorio_ponto').length);
+      setAlteracaoFeriasCount(filteredData.filter(r => r.benefit_type === 'alteracao_ferias').length);
+      setAlteracaoHorarioCount(filteredData.filter(r => r.benefit_type === 'alteracao_horario').length);
+      setRelatoAnomaliaCount(filteredData.filter(r => r.benefit_type === 'relato_anomalia').length);
 
       const exportData = filteredData.map(req => {
         const profile = profilesMap.get(req.user_id);
@@ -564,7 +574,7 @@ export default function Dashboard() {
 
         {/* Collapsible Cards Row */}
         <div className="flex flex-wrap gap-3">
-          {/* Convênios Card - Collapsible */}
+          {/* 1. Convênios Card - Collapsible */}
           <Collapsible 
             open={conveniosOpen} 
             onOpenChange={setConveniosOpen}
@@ -607,12 +617,116 @@ export default function Dashboard() {
             </CollapsibleContent>
           </Collapsible>
 
-          {/* Benefícios Card - Collapsible (planos e vale transporte) */}
+          {/* 2. Alteração de Férias Card */}
+          <Card 
+            className={cn(
+              "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit animate-fade-in",
+              "hover:border-amber-500/50 hover:bg-amber-500/5"
+            )}
+            style={{ animationDelay: '0.4s' }}
+            onClick={() => navigate('/solicitacoes?benefit_type=alteracao_ferias')}
+          >
+            <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
+              <div className="transform transition-transform duration-300 group-hover:scale-110">
+                <div className="w-12 h-12 rounded-full bg-amber-500/15 flex items-center justify-center">
+                  <Palmtree className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                </div>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Alteração de Férias
+                </p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                  {alteracaoFeriasCount}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 3. Alteração de Horário Card */}
+          <Card 
+            className={cn(
+              "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit animate-fade-in",
+              "hover:border-violet-500/50 hover:bg-violet-500/5"
+            )}
+            style={{ animationDelay: '0.45s' }}
+            onClick={() => navigate('/solicitacoes?benefit_type=alteracao_horario')}
+          >
+            <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
+              <div className="transform transition-transform duration-300 group-hover:scale-110">
+                <div className="w-12 h-12 rounded-full bg-violet-500/15 flex items-center justify-center">
+                  <Clock className="h-6 w-6 text-violet-600 dark:text-violet-400" />
+                </div>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Alteração de Horário
+                </p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                  {alteracaoHorarioCount}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 4. Atestado Card */}
+          <Card 
+            className={cn(
+              "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit animate-fade-in",
+              "hover:border-rose-500/50 hover:bg-rose-500/5"
+            )}
+            style={{ animationDelay: '0.5s' }}
+            onClick={() => navigate('/solicitacoes?benefit_type=atestado')}
+          >
+            <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
+              <div className="transform transition-transform duration-300 group-hover:scale-110">
+                <div className="w-12 h-12 rounded-full bg-rose-500/15 flex items-center justify-center">
+                  <Stethoscope className="h-6 w-6 text-rose-600 dark:text-rose-400" />
+                </div>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Atestado
+                </p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                  {atestadoCount}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 5. Aviso Folga/Falta Card */}
+          <Card 
+            className={cn(
+              "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit animate-fade-in",
+              "hover:border-slate-500/50 hover:bg-slate-500/5"
+            )}
+            style={{ animationDelay: '0.55s' }}
+            onClick={() => navigate('/solicitacoes?benefit_type=aviso_folga_falta')}
+          >
+            <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
+              <div className="transform transition-transform duration-300 group-hover:scale-110">
+                <div className="w-12 h-12 rounded-full bg-slate-500/15 flex items-center justify-center">
+                  <ClipboardList className="h-6 w-6 text-slate-600 dark:text-slate-400" />
+                </div>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Aviso Folga/Falta
+                </p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                  {avisoFolgaCount}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 6. Benefícios Card - Collapsible */}
           <Collapsible 
             open={beneficiosOpen} 
             onOpenChange={setBeneficiosOpen}
             className="animate-fade-in" 
-            style={{ animationDelay: '0.4s' }}
+            style={{ animationDelay: '0.6s' }}
           >
             <CollapsibleTrigger asChild>
               <Card 
@@ -650,53 +764,79 @@ export default function Dashboard() {
             </CollapsibleContent>
           </Collapsible>
 
-          {/* Aviso de Folga/Falta Card - Simple */}
+          {/* 7. Contracheque Card */}
           <Card 
             className={cn(
               "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit animate-fade-in",
-              "hover:border-slate-500/50 hover:bg-slate-500/5"
+              "hover:border-emerald-500/50 hover:bg-emerald-500/5"
             )}
-            style={{ animationDelay: '0.45s' }}
-            onClick={() => navigate('/solicitacoes?benefit_type=aviso_folga_falta')}
+            style={{ animationDelay: '0.65s' }}
+            onClick={() => navigate('/solicitacoes?benefit_type=contracheque')}
           >
             <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
               <div className="transform transition-transform duration-300 group-hover:scale-110">
-                <div className="w-12 h-12 rounded-full bg-slate-500/15 flex items-center justify-center">
-                  <ClipboardList className="h-6 w-6 text-slate-600 dark:text-slate-400" />
+                <div className="w-12 h-12 rounded-full bg-emerald-500/15 flex items-center justify-center">
+                  <Receipt className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
                 </div>
               </div>
               <div className="text-center">
                 <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Aviso Folga/Falta
+                  Contracheque
                 </p>
                 <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
-                  {avisoFolgaCount}
+                  {contrachequeCount}
                 </p>
               </div>
             </CardContent>
           </Card>
 
-          {/* Atestado Card - Simple */}
+          {/* 8. Relatório de Ponto Card */}
           <Card 
             className={cn(
               "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit animate-fade-in",
-              "hover:border-rose-500/50 hover:bg-rose-500/5"
+              "hover:border-cyan-500/50 hover:bg-cyan-500/5"
             )}
-            style={{ animationDelay: '0.5s' }}
-            onClick={() => navigate('/solicitacoes?benefit_type=atestado')}
+            style={{ animationDelay: '0.7s' }}
+            onClick={() => navigate('/solicitacoes?benefit_type=relatorio_ponto')}
           >
             <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
               <div className="transform transition-transform duration-300 group-hover:scale-110">
-                <div className="w-12 h-12 rounded-full bg-rose-500/15 flex items-center justify-center">
-                  <Stethoscope className="h-6 w-6 text-rose-600 dark:text-rose-400" />
+                <div className="w-12 h-12 rounded-full bg-cyan-500/15 flex items-center justify-center">
+                  <FileCheck className="h-6 w-6 text-cyan-600 dark:text-cyan-400" />
                 </div>
               </div>
               <div className="text-center">
                 <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Atestado
+                  Relatório de Ponto
                 </p>
                 <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
-                  {atestadoCount}
+                  {relatorioPontoCount}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 9. Relato de Anomalia Card */}
+          <Card 
+            className={cn(
+              "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit animate-fade-in",
+              "hover:border-orange-600/50 hover:bg-orange-600/5"
+            )}
+            style={{ animationDelay: '0.75s' }}
+            onClick={() => navigate('/solicitacoes?benefit_type=relato_anomalia')}
+          >
+            <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
+              <div className="transform transition-transform duration-300 group-hover:scale-110">
+                <div className="w-12 h-12 rounded-full bg-orange-600/15 flex items-center justify-center">
+                  <AlertOctagon className="h-6 w-6 text-orange-700 dark:text-orange-400" />
+                </div>
+              </div>
+              <div className="text-center">
+                <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Relato de Anomalia
+                </p>
+                <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                  {relatoAnomaliaCount}
                 </p>
               </div>
             </CardContent>

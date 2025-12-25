@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { DpBenefitType, dpBenefitTypeLabels, dpBenefitTypeEmojis } from '@/types/benefits';
 import { cn } from '@/lib/utils';
 import { AnimatedCounter } from './AnimatedCounter';
-import { Calendar, FileText, Stethoscope, Banknote, Clock, Timer, CalendarDays, BarChart3 } from 'lucide-react';
+import { Calendar, FileText, Stethoscope, Banknote, Clock, Timer, CalendarDays, BarChart3, AlertOctagon } from 'lucide-react';
 
 interface DpBenefitTypeData {
   type: DpBenefitType;
@@ -24,6 +24,7 @@ const cardStyles: Record<DpBenefitType, string> = {
   alteracao_horario: 'hover:border-indigo-500/50 hover:bg-indigo-500/5',
   operacao_domingo: 'hover:border-purple-500/50 hover:bg-purple-500/5',
   relatorio_ponto: 'hover:border-sky-500/50 hover:bg-sky-500/5',
+  relato_anomalia: 'hover:border-orange-600/50 hover:bg-orange-600/5',
 };
 
 const iconConfig: Record<DpBenefitType, { icon: typeof Calendar; bgColor: string; iconColor: string }> = {
@@ -66,6 +67,11 @@ const iconConfig: Record<DpBenefitType, { icon: typeof Calendar; bgColor: string
     icon: BarChart3,
     bgColor: 'bg-sky-500/15 dark:bg-sky-400/20',
     iconColor: 'text-sky-600 dark:text-sky-400',
+  },
+  relato_anomalia: {
+    icon: AlertOctagon,
+    bgColor: 'bg-orange-600/15 dark:bg-orange-500/20',
+    iconColor: 'text-orange-700 dark:text-orange-400',
   },
 };
 
