@@ -285,7 +285,7 @@ export function BenefitDetailsSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-lg p-0 flex flex-col">
+      <SheetContent className="w-full sm:max-w-lg p-0 flex flex-col h-[100dvh] max-h-[100dvh]">
         {/* Header fixo */}
         <SheetHeader className="p-6 pb-4 border-b border-border">
           <div className="flex items-center justify-between">
@@ -340,7 +340,7 @@ export function BenefitDetailsSheet({
             </TabsList>
           </div>
 
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 overflow-auto">
             <TabsContent value="details" className="m-0">
               <div className="p-6 space-y-6">
                 {/* Status atual */}
