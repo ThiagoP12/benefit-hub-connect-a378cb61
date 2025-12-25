@@ -1,5 +1,20 @@
 // Alinhado com os enums do banco de dados Supabase
-export type BenefitType = 'autoescola' | 'farmacia' | 'oficina' | 'vale_gas' | 'papelaria' | 'otica' | 'outros';
+export type BenefitType = 
+  | 'autoescola' 
+  | 'farmacia' 
+  | 'oficina' 
+  | 'vale_gas' 
+  | 'papelaria' 
+  | 'otica' 
+  | 'outros'
+  | 'alteracao_ferias'
+  | 'aviso_folga_falta'
+  | 'atestado'
+  | 'contracheque'
+  | 'abono_horas'
+  | 'alteracao_horario'
+  | 'operacao_domingo'
+  | 'relatorio_ponto';
 
 export type BenefitStatus = 'aberta' | 'em_analise' | 'aprovada' | 'recusada' | 'concluida';
 
@@ -65,6 +80,14 @@ export const benefitTypeLabels: Record<BenefitType, string> = {
   papelaria: 'Papelaria',
   otica: 'Ótica',
   outros: 'Outros',
+  alteracao_ferias: 'Alteração de Férias',
+  aviso_folga_falta: 'Aviso Folga/Falta',
+  atestado: 'Atestado',
+  contracheque: 'Contracheque',
+  abono_horas: 'Abono de Horas',
+  alteracao_horario: 'Alteração de Horário',
+  operacao_domingo: 'Operação Domingo',
+  relatorio_ponto: 'Relatório de Ponto',
 };
 
 export const benefitTypeEmojis: Record<BenefitType, string> = {
@@ -75,6 +98,14 @@ export const benefitTypeEmojis: Record<BenefitType, string> = {
   papelaria: '📚',
   otica: '👓',
   outros: '📦',
+  alteracao_ferias: '🏖️',
+  aviso_folga_falta: '📋',
+  atestado: '🏥',
+  contracheque: '💰',
+  abono_horas: '⏰',
+  alteracao_horario: '🕐',
+  operacao_domingo: '📅',
+  relatorio_ponto: '📊',
 };
 
 export const statusLabels: Record<BenefitStatus, string> = {
@@ -92,13 +123,23 @@ export const statusFilterLabels: Record<Exclude<BenefitStatus, 'concluida'>, str
   recusada: 'Reprovado',
 };
 
-export const benefitTypeFilterLabels: Record<Exclude<BenefitType, 'outros'>, string> = {
+// Apenas os tipos de convênio para filtros
+export const benefitTypeFilterLabels: Partial<Record<BenefitType, string>> = {
   autoescola: 'Autoescola',
   farmacia: 'Farmácia',
   oficina: 'Oficina',
   vale_gas: 'Vale Gás',
   papelaria: 'Papelaria',
   otica: 'Ótica',
+  alteracao_ferias: 'Alteração de Férias',
+  aviso_folga_falta: 'Aviso Folga/Falta',
+  atestado: 'Atestado',
+  contracheque: 'Contracheque',
+  abono_horas: 'Abono de Horas',
+  alteracao_horario: 'Alteração de Horário',
+  operacao_domingo: 'Operação Domingo',
+  relatorio_ponto: 'Relatório de Ponto',
+  outros: 'Outros',
 };
 
 export const roleLabels: Record<UserRole, string> = {
