@@ -4,14 +4,13 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 import { BenefitTypeCards } from '@/components/dashboard/BenefitTypeCards';
-import { ConvenioCards } from '@/components/dashboard/ConvenioCards';
 import { format, startOfMonth, endOfMonth, subMonths, differenceInHours, isWithinInterval, startOfDay, endOfDay, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { FileText, Clock, CheckCircle, FolderOpen, TrendingUp, Eye, Download, FileSpreadsheet, Calendar, Timer, LayoutDashboard, Building2, XCircle, AlertTriangle, Hash, User, Package, CircleDot, Settings, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { BenefitType, benefitTypeLabels, benefitTypeEmojis, statusLabels, ConvenioType, convenioTypes, dpActivityTypes, DPActivityType } from '@/types/benefits';
+import { BenefitType, benefitTypeLabels, benefitTypeEmojis, statusLabels } from '@/types/benefits';
 import { BenefitIcon } from '@/components/ui/benefit-icon';
-// benefitTypes removido - usando listas separadas
+import { benefitTypes } from '@/data/mockData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status-badge';
@@ -23,7 +22,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { exportToCSV, exportToExcel, formatDateTimeForExport } from '@/lib/exportUtils';
 import { toast } from 'sonner';
 
-// Tipos filtrados removidos - usando dpActivityTypes e convenioTypes diretamente
+const filteredBenefitTypes = benefitTypes.filter(t => t !== 'outros') as BenefitType[];
 
 interface DashboardStats {
   total: number;
@@ -73,23 +72,13 @@ type DateFilter = 'all' | '7days' | '30days' | '90days' | 'custom';
 
 // Colors matching benefit types
 const BENEFIT_COLORS: Record<string, string> = {
-  // Atividades do DP
-  alteracao_ferias: '#3B82F6',
-  aviso_folga_falta: '#F59E0B',
-  atestado: '#10B981',
-  contracheque: '#8B5CF6',
-  abono_horas: '#06B6D4',
-  alteracao_horario: '#F97316',
-  operacao_domingo: '#EF4444',
-  relatorio_ponto: '#6366F1',
-  outros: '#6B7280',
-  // Convênios
-  autoescola: '#0EA5E9',
-  farmacia: '#14B8A6',
-  oficina: '#EAB308',
-  vale_gas: '#F43F5E',
-  papelaria: '#A855F7',
-  otica: '#D946EF',
+  autoescola: '#3B82F6',   // Blue
+  farmacia: '#10B981',     // Emerald
+  oficina: '#F97316',      // Orange
+  vale_gas: '#EF4444',     // Red
+  papelaria: '#8B5CF6',    // Violet
+  otica: '#06B6D4',        // Cyan
+  outros: '#6B7280',       // Gray
 };
 
 
@@ -101,7 +90,6 @@ export default function Dashboard() {
     approvalRate: 0, avgResponseTime: 0
   });
   const [benefitTypeData, setBenefitTypeData] = useState<{ type: BenefitType; count: number }[]>([]);
-  const [convenioData, setConvenioData] = useState<{ type: ConvenioType; count: number }[]>([]);
   const [allRequests, setAllRequests] = useState<RequestData[]>([]);
   const [recentRequests, setRecentRequests] = useState<RecentRequest[]>([]);
   const [alertRequests, setAlertRequests] = useState<AlertRequest[]>([]);
@@ -235,19 +223,11 @@ export default function Dashboard() {
 
       setStats({ total, today, abertos, emAnalise, aprovados, reprovados, approvalRate, avgResponseTime });
 
-      // Dados para atividades do DP
-      const dpTypeData = dpActivityTypes.map(type => ({
-        type: type as BenefitType,
-        count: filteredData.filter(r => r.benefit_type === type).length,
-      }));
-      setBenefitTypeData(dpTypeData);
-
-      // Dados para convênios
-      const convenioTypeData = convenioTypes.map(type => ({
+      const typeData = filteredBenefitTypes.map(type => ({
         type,
         count: filteredData.filter(r => r.benefit_type === type).length,
       }));
-      setConvenioData(convenioTypeData);
+      setBenefitTypeData(typeData);
 
       const exportData = filteredData.map(req => {
         const profile = profilesMap.get(req.user_id);
@@ -561,11 +541,8 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Atividades do DP */}
+        {/* Benefit Type Cards */}
         <BenefitTypeCards data={benefitTypeData} total={stats.total} />
-
-        {/* Convênios */}
-        <ConvenioCards data={convenioData} total={stats.total} />
 
         {/* Charts Grid */}
         <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">

@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
   SelectContent,
@@ -21,11 +20,10 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { benefitTypeLabels, BenefitType, BenefitStatus } from '@/types/benefits';
 import { Skeleton } from '@/components/ui/skeleton';
-import { FileText, AlertCircle, Clock, History, Filter, Download, CreditCard, Check, CheckCircle, XCircle, LayoutList } from 'lucide-react';
+import { FileText, AlertCircle, Clock, History, Filter, Download, CreditCard, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
-import { BenefitIcon } from '@/components/ui/benefit-icon';
 
 const statusLabelsMap: Record<BenefitStatus, string> = {
   aberta: 'Aberta',
@@ -34,6 +32,13 @@ const statusLabelsMap: Record<BenefitStatus, string> = {
   recusada: 'Recusada',
   concluida: 'Concluída',
 };
+
+const statusFilterOptions: { value: string; label: string }[] = [
+  { value: 'aberta', label: 'Aberta' },
+  { value: 'em_analise', label: 'Em Análise' },
+  { value: 'aprovada_concluida', label: 'Aprovada' },
+  { value: 'recusada', label: 'Recusada' },
+];
 
 interface BenefitRequest {
   id: string;
@@ -64,42 +69,29 @@ export function ColaboradorHistorySheet({
 }: ColaboradorHistorySheetProps) {
   const [requests, setRequests] = useState<BenefitRequest[]>([]);
   const [loading, setLoading] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [updatingInstallment, setUpdatingInstallment] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<string>('all');
 
-  // Counts
-  const counts = useMemo(() => {
-    const all = requests.length;
-    const approved = requests.filter(r => r.status === 'aprovada' || r.status === 'concluida').length;
-    const rejected = requests.filter(r => r.status === 'recusada').length;
-    return { all, approved, rejected };
-  }, [requests]);
-
-  // Filter by tab and type
   const filteredRequests = useMemo(() => {
     return requests.filter((req) => {
-      // Tab filter
-      let matchesTab = true;
-      if (activeTab === 'approved') {
-        matchesTab = req.status === 'aprovada' || req.status === 'concluida';
-      } else if (activeTab === 'rejected') {
-        matchesTab = req.status === 'recusada';
+      let matchesStatus = statusFilter === 'all';
+      if (statusFilter === 'aprovada_concluida') {
+        matchesStatus = req.status === 'aprovada' || req.status === 'concluida';
+      } else if (statusFilter !== 'all') {
+        matchesStatus = req.status === statusFilter;
       }
-      
-      // Type filter
       const matchesType = typeFilter === 'all' || req.benefit_type === typeFilter;
-      
-      return matchesTab && matchesType;
+      return matchesStatus && matchesType;
     });
-  }, [requests, activeTab, typeFilter]);
+  }, [requests, statusFilter, typeFilter]);
 
   const clearFilters = () => {
+    setStatusFilter('all');
     setTypeFilter('all');
-    setActiveTab('all');
   };
 
-  const hasActiveFilters = typeFilter !== 'all';
+  const hasActiveFilters = statusFilter !== 'all' || typeFilter !== 'all';
 
   useEffect(() => {
     if (open && colaborador) {
@@ -161,7 +153,7 @@ export function ColaboradorHistorySheet({
     const headers = ['Protocolo', 'Tipo', 'Status', 'Valor Aprovado', 'Parcelas', 'Data', 'Motivo Recusa'];
     const rows = filteredRequests.map((req) => [
       req.protocol,
-      benefitTypeLabels[req.benefit_type] || req.benefit_type,
+      benefitTypeLabels[req.benefit_type],
       statusLabelsMap[req.status],
       req.approved_value ? `R$ ${req.approved_value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '',
       req.total_installments && req.total_installments > 1
@@ -186,108 +178,6 @@ export function ColaboradorHistorySheet({
     toast.success('CSV exportado com sucesso!');
   };
 
-  const renderRequestCard = (request: BenefitRequest) => (
-    <div
-      key={request.id}
-      className="rounded-lg border border-border bg-card p-4 space-y-3 transition-colors hover:border-border/80 hover:bg-accent/30"
-    >
-      <div className="flex items-start justify-between gap-2">
-        <span className="font-mono text-sm font-semibold text-foreground">
-          {request.protocol}
-        </span>
-        <span className="text-xs text-muted-foreground whitespace-nowrap">
-          {formatDate(request.created_at)}
-        </span>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <BenefitIcon type={request.benefit_type} size="sm" />
-        <span className="text-sm font-medium text-foreground">
-          {benefitTypeLabels[request.benefit_type] || request.benefit_type}
-        </span>
-      </div>
-
-      <div className="flex items-center justify-between pt-1">
-        <StatusBadge status={request.status} label={statusLabelsMap[request.status]} />
-
-        {request.approved_value && (
-          <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-            R$ {request.approved_value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-          </span>
-        )}
-      </div>
-
-      {(request.status === 'aprovada' || request.status === 'concluida') &&
-       request.total_installments && request.total_installments > 1 && (
-        <div className="flex items-center justify-between gap-2 rounded-md bg-primary/5 border border-primary/20 p-3 mt-2">
-          <div className="flex items-center gap-2">
-            <CreditCard className="h-4 w-4 text-primary shrink-0" />
-            <div className="text-sm">
-              <span className="font-medium text-foreground">Parcelas: </span>
-              <span className={`font-semibold ${
-                (request.paid_installments || 0) >= request.total_installments
-                  ? 'text-emerald-600 dark:text-emerald-400'
-                  : 'text-primary'
-              }`}>
-                {request.paid_installments || 0}/{request.total_installments}
-              </span>
-            </div>
-          </div>
-          {(request.paid_installments || 0) < request.total_installments && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs gap-1 border-primary/30 text-primary hover:bg-primary/10"
-              disabled={updatingInstallment === request.id}
-              onClick={() => handlePayInstallment(
-                request.id,
-                request.paid_installments || 0,
-                request.total_installments || 1
-              )}
-            >
-              <Check className="h-3 w-3" />
-              Pagar
-            </Button>
-          )}
-          {(request.paid_installments || 0) >= request.total_installments && (
-            <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
-              Quitado
-            </Badge>
-          )}
-        </div>
-      )}
-
-      {(request.status === 'concluida' || request.status === 'aprovada') && request.pdf_url && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full mt-2 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
-          onClick={() => window.open(request.pdf_url!, '_blank')}
-        >
-          <FileText className="h-4 w-4 shrink-0" />
-          <span>Visualizar PDF</span>
-        </Button>
-      )}
-
-      {request.status === 'recusada' && request.rejection_reason && (
-        <div className="flex items-start gap-2.5 rounded-md bg-destructive/10 border border-destructive/20 p-3 mt-2">
-          <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
-          <div className="text-sm min-w-0">
-            <span className="font-medium text-destructive">Motivo:</span>
-            <p className="text-destructive/80 mt-0.5 break-words">{request.rejection_reason}</p>
-          </div>
-        </div>
-      )}
-
-      {request.status === 'aprovada' && !request.pdf_url && (
-        <div className="flex items-center gap-2 rounded-md bg-amber-500/10 border border-amber-500/20 p-3 mt-2">
-          <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
-          <span className="text-sm text-amber-700 dark:text-amber-300">Aprovado - Aguardando PDF</span>
-        </div>
-      )}
-    </div>
-  );
-
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-lg p-0 flex flex-col">
@@ -306,26 +196,38 @@ export function ColaboradorHistorySheet({
 
           {!loading && requests.length > 0 && (
             <div className="mt-4 space-y-3">
-              {/* Summary badges */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <Badge variant="outline" className="text-xs gap-1">
-                  <LayoutList className="h-3 w-3" />
-                  Total: {counts.all}
+              <div className="flex items-center justify-between">
+                <Badge variant="secondary" className="text-xs">
+                  {filteredRequests.length} de {requests.length} {requests.length === 1 ? 'solicitação' : 'solicitações'}
                 </Badge>
-                <Badge variant="outline" className="text-xs gap-1 border-emerald-500/30 text-emerald-600 bg-emerald-500/10">
-                  <CheckCircle className="h-3 w-3" />
-                  Aprovadas: {counts.approved}
-                </Badge>
-                <Badge variant="outline" className="text-xs gap-1 border-destructive/30 text-destructive bg-destructive/10">
-                  <XCircle className="h-3 w-3" />
-                  Reprovadas: {counts.rejected}
-                </Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs gap-1.5 shrink-0"
+                  onClick={exportToCSV}
+                  disabled={filteredRequests.length === 0}
+                >
+                  <Download className="h-3.5 w-3.5 shrink-0" />
+                  <span className="hidden sm:inline">Exportar</span>
+                </Button>
               </div>
 
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="h-8 text-xs flex-1">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os status</SelectItem>
+                    {statusFilterOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
                 <Select value={typeFilter} onValueChange={setTypeFilter}>
                   <SelectTrigger className="h-8 text-xs flex-1">
-                    <SelectValue placeholder="Filtrar por tipo" />
+                    <SelectValue placeholder="Tipo" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos os tipos</SelectItem>
@@ -335,116 +237,155 @@ export function ColaboradorHistorySheet({
                   </SelectContent>
                 </Select>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-xs gap-1.5 shrink-0"
-                  onClick={exportToCSV}
-                  disabled={filteredRequests.length === 0}
-                >
-                  <Download className="h-3.5 w-3.5 shrink-0" />
-                  <span className="hidden sm:inline">Exportar</span>
-                </Button>
+                {hasActiveFilters && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 text-xs"
+                    onClick={clearFilters}
+                  >
+                    Limpar
+                  </Button>
+                )}
               </div>
-
-              {hasActiveFilters && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2 text-xs"
-                  onClick={clearFilters}
-                >
-                  Limpar filtros
-                </Button>
-              )}
             </div>
           )}
         </div>
 
         <Separator />
 
-        {loading ? (
-          <div className="flex-1 px-6 py-4 space-y-3">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="rounded-lg border border-border p-4 space-y-3">
-                <div className="flex justify-between">
-                  <Skeleton className="h-5 w-36" />
-                  <Skeleton className="h-4 w-28" />
+        <ScrollArea className="flex-1 px-6">
+          <div className="py-4 space-y-3">
+            {loading ? (
+              [...Array(3)].map((_, i) => (
+                <div key={i} className="rounded-lg border border-border p-4 space-y-3">
+                  <div className="flex justify-between">
+                    <Skeleton className="h-5 w-36" />
+                    <Skeleton className="h-4 w-28" />
+                  </div>
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-6 w-20" />
                 </div>
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-6 w-20" />
+              ))
+            ) : requests.length === 0 ? (
+              <div className="text-center py-16 text-muted-foreground">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted/50 mb-4">
+                  <Clock className="h-8 w-8 opacity-50" />
+                </div>
+                <p className="font-medium">Nenhuma solicitação</p>
+                <p className="text-sm mt-1">Este colaborador ainda não possui solicitações</p>
               </div>
-            ))}
-          </div>
-        ) : requests.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center px-6">
-            <div className="text-center py-16 text-muted-foreground">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted/50 mb-4">
-                <Clock className="h-8 w-8 opacity-50" />
+            ) : filteredRequests.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Filter className="h-8 w-8 mx-auto mb-3 opacity-50" />
+                <p className="font-medium">Nenhum resultado</p>
+                <p className="text-sm mt-1">Nenhuma solicitação corresponde aos filtros</p>
+                <Button variant="link" size="sm" onClick={clearFilters} className="mt-2">
+                  Limpar filtros
+                </Button>
               </div>
-              <p className="font-medium">Nenhuma solicitação</p>
-              <p className="text-sm mt-1">Este colaborador ainda não possui solicitações</p>
-            </div>
-          </div>
-        ) : (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-            <div className="px-6 pt-2">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="all" className="gap-1.5 text-xs">
-                  <LayoutList className="h-3.5 w-3.5" />
-                  Todas ({counts.all})
-                </TabsTrigger>
-                <TabsTrigger value="approved" className="gap-1.5 text-xs">
-                  <CheckCircle className="h-3.5 w-3.5" />
-                  Aprovadas ({counts.approved})
-                </TabsTrigger>
-                <TabsTrigger value="rejected" className="gap-1.5 text-xs">
-                  <XCircle className="h-3.5 w-3.5" />
-                  Reprovadas ({counts.rejected})
-                </TabsTrigger>
-              </TabsList>
-            </div>
+            ) : (
+              filteredRequests.map((request) => (
+                <div
+                  key={request.id}
+                  className="rounded-lg border border-border bg-card p-4 space-y-3 transition-colors hover:border-border/80 hover:bg-accent/30"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="font-mono text-sm font-semibold text-foreground">
+                      {request.protocol}
+                    </span>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
+                      {formatDate(request.created_at)}
+                    </span>
+                  </div>
 
-            <ScrollArea className="flex-1 px-6">
-              <TabsContent value="all" className="mt-0 py-4 space-y-3">
-                {filteredRequests.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Filter className="h-8 w-8 mx-auto mb-3 opacity-50" />
-                    <p className="font-medium">Nenhum resultado</p>
-                    <p className="text-sm mt-1">Nenhuma solicitação corresponde aos filtros</p>
-                    <Button variant="link" size="sm" onClick={clearFilters} className="mt-2">
-                      Limpar filtros
+                  <div className="text-sm font-medium text-foreground">
+                    {benefitTypeLabels[request.benefit_type]}
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <StatusBadge status={request.status} label={statusLabelsMap[request.status]} />
+
+                    {request.approved_value && (
+                      <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                        R$ {request.approved_value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                    )}
+                  </div>
+
+                  {(request.status === 'aprovada' || request.status === 'concluida') &&
+                   request.total_installments && request.total_installments > 1 && (
+                    <div className="flex items-center justify-between gap-2 rounded-md bg-primary/5 border border-primary/20 p-3 mt-2">
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="h-4 w-4 text-primary shrink-0" />
+                        <div className="text-sm">
+                          <span className="font-medium text-foreground">Parcelas: </span>
+                          <span className={`font-semibold ${
+                            (request.paid_installments || 0) >= request.total_installments
+                              ? 'text-emerald-600 dark:text-emerald-400'
+                              : 'text-primary'
+                          }`}>
+                            {request.paid_installments || 0}/{request.total_installments}
+                          </span>
+                        </div>
+                      </div>
+                      {(request.paid_installments || 0) < request.total_installments && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs gap-1 border-primary/30 text-primary hover:bg-primary/10"
+                          disabled={updatingInstallment === request.id}
+                          onClick={() => handlePayInstallment(
+                            request.id,
+                            request.paid_installments || 0,
+                            request.total_installments || 1
+                          )}
+                        >
+                          <Check className="h-3 w-3" />
+                          Pagar
+                        </Button>
+                      )}
+                      {(request.paid_installments || 0) >= request.total_installments && (
+                        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/30">
+                          Quitado
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+
+                  {(request.status === 'concluida' || request.status === 'aprovada') && request.pdf_url && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full mt-2 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10"
+                      onClick={() => window.open(request.pdf_url!, '_blank')}
+                    >
+                      <FileText className="h-4 w-4 shrink-0" />
+                      <span>Visualizar PDF</span>
                     </Button>
-                  </div>
-                ) : (
-                  filteredRequests.map(renderRequestCard)
-                )}
-              </TabsContent>
+                  )}
 
-              <TabsContent value="approved" className="mt-0 py-4 space-y-3">
-                {filteredRequests.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <CheckCircle className="h-8 w-8 mx-auto mb-3 opacity-50" />
-                    <p className="font-medium">Nenhuma solicitação aprovada</p>
-                  </div>
-                ) : (
-                  filteredRequests.map(renderRequestCard)
-                )}
-              </TabsContent>
+                  {request.status === 'recusada' && request.rejection_reason && (
+                    <div className="flex items-start gap-2.5 rounded-md bg-destructive/10 border border-destructive/20 p-3 mt-2">
+                      <AlertCircle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                      <div className="text-sm min-w-0">
+                        <span className="font-medium text-destructive">Motivo:</span>
+                        <p className="text-destructive/80 mt-0.5 break-words">{request.rejection_reason}</p>
+                      </div>
+                    </div>
+                  )}
 
-              <TabsContent value="rejected" className="mt-0 py-4 space-y-3">
-                {filteredRequests.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <XCircle className="h-8 w-8 mx-auto mb-3 opacity-50" />
-                    <p className="font-medium">Nenhuma solicitação reprovada</p>
-                  </div>
-                ) : (
-                  filteredRequests.map(renderRequestCard)
-                )}
-              </TabsContent>
-            </ScrollArea>
-          </Tabs>
-        )}
+                  {request.status === 'aprovada' && !request.pdf_url && (
+                    <div className="flex items-center gap-2 rounded-md bg-amber-500/10 border border-amber-500/20 p-3 mt-2">
+                      <Clock className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                      <span className="text-sm text-amber-700 dark:text-amber-300">Aprovado - Aguardando PDF</span>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </ScrollArea>
       </SheetContent>
     </Sheet>
   );

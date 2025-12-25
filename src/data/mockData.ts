@@ -1,7 +1,7 @@
 // This file contains helper functions for dashboard statistics
 // Data is now primarily fetched from Supabase
 
-import { BenefitType, BenefitStatus, DPActivityType, ConvenioType, dpActivityTypes, convenioTypes } from '@/types/benefits';
+import { BenefitType, BenefitStatus } from '@/types/benefits';
 
 // Helper types for dashboard
 export interface DashboardStats {
@@ -46,8 +46,8 @@ export const getMonthlyData = (): MonthlyData[] => {
   }));
 };
 
-// Export lists
-export const benefitTypes: BenefitType[] = [...dpActivityTypes, ...convenioTypes];
+// Benefit types list
+export const benefitTypes: BenefitType[] = ['autoescola', 'farmacia', 'oficina', 'vale_gas', 'papelaria', 'otica'];
 
 // Status list (sem concluida na UI)
 export const statuses: BenefitStatus[] = ['aberta', 'em_analise', 'aprovada', 'recusada'];

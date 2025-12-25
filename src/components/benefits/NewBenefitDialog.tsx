@@ -105,7 +105,7 @@ export function NewBenefitDialog({ onSuccess }: { onSuccess?: () => void }) {
       .from('benefit_requests')
       .insert({
         user_id: values.userId,
-        benefit_type: values.benefitType as any, // Cast para compatibilidade com tipos do banco
+        benefit_type: values.benefitType as BenefitType,
         details: values.details,
         protocol,
         status: 'aberta',
