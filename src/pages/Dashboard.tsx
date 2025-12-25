@@ -73,7 +73,9 @@ interface AlertRequest extends RequestData {
   slaStatus: 'yellow' | 'red';
 }
 
-type DateFilter = 'all' | '7days' | '30days' | '90days' | 'custom';
+// Category filter types
+const CONVENIO_TYPES = ['autoescola', 'farmacia', 'oficina', 'vale_gas', 'papelaria', 'otica', 'outros'];
+const BENEFICIO_TYPES = ['plano_odontologico', 'plano_saude', 'vale_transporte'];
 
 // Colors matching benefit types
 const BENEFIT_COLORS: Record<string, string> = {
@@ -114,12 +116,14 @@ export default function Dashboard() {
   const [conveniosOpen, setConveniosOpen] = useState(false);
   const [beneficiosOpen, setBeneficiosOpen] = useState(false);
   
-  // Date filter state
-  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+  // Date filter state - direct calendar
   const [customDateRange, setCustomDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
     from: undefined,
     to: undefined,
   });
+  
+  // Category filter
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
   useEffect(() => {
     fetchUnits();
@@ -128,7 +132,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchDashboardData();
-  }, [dateFilter, customDateRange, unitFilter, slaConfigs]);
+  }, [customDateRange, unitFilter, categoryFilter, slaConfigs]);
 
   const fetchSlaConfigs = async () => {
     try {
@@ -150,22 +154,13 @@ export default function Dashboard() {
   };
 
   const getDateRange = (): { start: Date | null; end: Date | null } => {
-    const now = new Date();
-    switch (dateFilter) {
-      case '7days':
-        return { start: subDays(now, 7), end: now };
-      case '30days':
-        return { start: subDays(now, 30), end: now };
-      case '90days':
-        return { start: subDays(now, 90), end: now };
-      case 'custom':
-        return { 
-          start: customDateRange.from ? startOfDay(customDateRange.from) : null, 
-          end: customDateRange.to ? endOfDay(customDateRange.to) : null 
-        };
-      default:
-        return { start: null, end: null };
+    if (customDateRange.from && customDateRange.to) {
+      return { 
+        start: startOfDay(customDateRange.from), 
+        end: endOfDay(customDateRange.to) 
+      };
     }
+    return { start: null, end: null };
   };
 
   const filterByDate = (data: RequestData[]): RequestData[] => {
@@ -205,11 +200,23 @@ export default function Dashboard() {
       
       let filteredData = filterByDate(rawData);
       
+      // Filter by unit
       if (unitFilter !== 'all') {
         filteredData = filteredData.filter(req => {
           const profile = profilesMap.get(req.user_id);
           return profile?.unit_id === unitFilter;
         });
+      }
+      
+      // Filter by category
+      if (categoryFilter !== 'all') {
+        if (categoryFilter === 'convenios') {
+          filteredData = filteredData.filter(req => CONVENIO_TYPES.includes(req.benefit_type));
+        } else if (categoryFilter === 'beneficios') {
+          filteredData = filteredData.filter(req => BENEFICIO_TYPES.includes(req.benefit_type));
+        } else {
+          filteredData = filteredData.filter(req => req.benefit_type === categoryFilter);
+        }
       }
 
       const total = filteredData.length;
@@ -380,7 +387,7 @@ export default function Dashboard() {
     }
 
     return months;
-  }, [allRequests, dateFilter, customDateRange]);
+  }, [allRequests, customDateRange]);
 
   const pieData = benefitTypeData
     .filter(item => item.count > 0)
@@ -434,18 +441,58 @@ export default function Dashboard() {
           </div>
           
           <div className="flex flex-wrap items-center gap-2">
-            {/* Date Filter */}
-            <Select value={dateFilter} onValueChange={(v) => setDateFilter(v as DateFilter)}>
-              <SelectTrigger className="w-[160px]">
-                <Calendar className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Período" />
+            {/* Date Filter - Direct Calendar */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-[180px] justify-start">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  {customDateRange.from && customDateRange.to 
+                    ? `${format(customDateRange.from, 'dd/MM')} - ${format(customDateRange.to, 'dd/MM')}`
+                    : 'Todo período'
+                  }
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <CalendarComponent
+                  mode="range"
+                  selected={{ from: customDateRange.from, to: customDateRange.to }}
+                  onSelect={(range) => setCustomDateRange({ from: range?.from, to: range?.to })}
+                  numberOfMonths={2}
+                  locale={ptBR}
+                  className="pointer-events-auto"
+                />
+                {(customDateRange.from || customDateRange.to) && (
+                  <div className="p-2 border-t">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="w-full"
+                      onClick={() => setCustomDateRange({ from: undefined, to: undefined })}
+                    >
+                      Limpar período
+                    </Button>
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
+
+            {/* Category/Type Filter */}
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger className="w-[180px]">
+                <Package className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Tipo" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todo período</SelectItem>
-                <SelectItem value="7days">Últimos 7 dias</SelectItem>
-                <SelectItem value="30days">Últimos 30 dias</SelectItem>
-                <SelectItem value="90days">Últimos 90 dias</SelectItem>
-                <SelectItem value="custom">Personalizado</SelectItem>
+                <SelectItem value="all">Todos os tipos</SelectItem>
+                <SelectItem value="convenios">🏪 Convênios</SelectItem>
+                <SelectItem value="alteracao_ferias">🏖️ Alteração de Férias</SelectItem>
+                <SelectItem value="alteracao_horario">🕐 Alteração de Horário</SelectItem>
+                <SelectItem value="atestado">🏥 Atestado</SelectItem>
+                <SelectItem value="aviso_folga_falta">📋 Aviso Folga/Falta</SelectItem>
+                <SelectItem value="beneficios">💼 Benefícios</SelectItem>
+                <SelectItem value="contracheque">💰 Contracheque</SelectItem>
+                <SelectItem value="relatorio_ponto">📊 Relatório de Ponto</SelectItem>
+                <SelectItem value="relato_anomalia">⚠️ Relato de Anomalia</SelectItem>
               </SelectContent>
             </Select>
 
@@ -464,28 +511,6 @@ export default function Dashboard() {
                 ))}
               </SelectContent>
             </Select>
-
-            {dateFilter === 'custom' && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    {customDateRange.from && customDateRange.to 
-                      ? `${format(customDateRange.from, 'dd/MM')} - ${format(customDateRange.to, 'dd/MM')}`
-                      : 'Selecionar datas'
-                    }
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                  <CalendarComponent
-                    mode="range"
-                    selected={{ from: customDateRange.from, to: customDateRange.to }}
-                    onSelect={(range) => setCustomDateRange({ from: range?.from, to: range?.to })}
-                    numberOfMonths={2}
-                    locale={ptBR}
-                  />
-                </PopoverContent>
-              </Popover>
-            )}
 
             {/* Export Dropdown */}
             <DropdownMenu>

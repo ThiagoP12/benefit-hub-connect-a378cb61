@@ -262,7 +262,21 @@ export default function Solicitacoes() {
       matchesStatus = statuses.includes(request.status);
     }
     
-    const matchesType = typeFilter === 'all' || request.benefit_type === typeFilter;
+    // Handle type filter with category groups
+    const convenioTypes = ['autoescola', 'farmacia', 'oficina', 'vale_gas', 'papelaria', 'otica', 'outros'];
+    const beneficioTypes = ['plano_odontologico', 'plano_saude', 'vale_transporte'];
+    
+    let matchesType = typeFilter === 'all';
+    if (!matchesType) {
+      if (typeFilter === 'convenios') {
+        matchesType = convenioTypes.includes(request.benefit_type);
+      } else if (typeFilter === 'beneficios') {
+        matchesType = beneficioTypes.includes(request.benefit_type);
+      } else {
+        matchesType = request.benefit_type === typeFilter;
+      }
+    }
+    
     const matchesUnit = unitFilter === 'all' || request.profile?.unit_id === unitFilter;
     
     // Date range filter
@@ -476,20 +490,21 @@ export default function Solicitacoes() {
               </SelectContent>
             </Select>
             <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-full sm:w-40">
+              <SelectTrigger className="w-full sm:w-48">
                 <Package className="h-4 w-4 mr-2 text-muted-foreground" />
                 <SelectValue placeholder="Tipo" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os tipos</SelectItem>
-                {Object.entries(benefitTypeLabels).map(([key, label]) => (
-                  <SelectItem key={key} value={key}>
-                    <div className="flex items-center gap-2">
-                      <BenefitIcon type={key as ConvenioBenefitType} size="sm" />
-                      <span>{label}</span>
-                    </div>
-                  </SelectItem>
-                ))}
+                <SelectItem value="convenios">🏪 Convênios</SelectItem>
+                <SelectItem value="alteracao_ferias">🏖️ Alteração de Férias</SelectItem>
+                <SelectItem value="alteracao_horario">🕐 Alteração de Horário</SelectItem>
+                <SelectItem value="atestado">🏥 Atestado</SelectItem>
+                <SelectItem value="aviso_folga_falta">📋 Aviso Folga/Falta</SelectItem>
+                <SelectItem value="beneficios">💼 Benefícios</SelectItem>
+                <SelectItem value="contracheque">💰 Contracheque</SelectItem>
+                <SelectItem value="relatorio_ponto">📊 Relatório de Ponto</SelectItem>
+                <SelectItem value="relato_anomalia">⚠️ Relato de Anomalia</SelectItem>
               </SelectContent>
             </Select>
             <Select value={unitFilter} onValueChange={setUnitFilter}>
