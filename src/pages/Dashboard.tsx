@@ -4,12 +4,15 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 import { BenefitTypeCards } from '@/components/dashboard/BenefitTypeCards';
+import { DpBenefitTypeCards } from '@/components/dashboard/DpBenefitTypeCards';
 import { format, startOfMonth, endOfMonth, subMonths, differenceInHours, isWithinInterval, startOfDay, endOfDay, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { FileText, Clock, CheckCircle, FolderOpen, TrendingUp, Eye, Download, FileSpreadsheet, Calendar, Timer, LayoutDashboard, Building2, XCircle, AlertTriangle, Hash, User, Package, CircleDot, Settings, RefreshCw, ChevronDown } from 'lucide-react';
+import { FileText, Clock, CheckCircle, FolderOpen, TrendingUp, Eye, Download, FileSpreadsheet, Calendar, Timer, LayoutDashboard, Building2, XCircle, AlertTriangle, Hash, User, Package, CircleDot, Settings, RefreshCw, ChevronDown, Briefcase } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { BenefitType, ConvenioBenefitType, benefitTypeLabels, benefitTypeEmojis, statusLabels } from '@/types/benefits';
+import { BenefitType, ConvenioBenefitType, DpBenefitType, benefitTypeLabels, benefitTypeEmojis, statusLabels } from '@/types/benefits';
 import { BenefitIcon } from '@/components/ui/benefit-icon';
+
+const dpBenefitTypes: DpBenefitType[] = ['alteracao_ferias', 'aviso_folga_falta', 'atestado', 'contracheque', 'abono_horas', 'alteracao_horario', 'operacao_domingo', 'relatorio_ponto'];
 import { benefitTypes } from '@/data/mockData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -92,6 +95,7 @@ export default function Dashboard() {
     approvalRate: 0, avgResponseTime: 0
   });
   const [benefitTypeData, setBenefitTypeData] = useState<{ type: ConvenioBenefitType; count: number }[]>([]);
+  const [dpBenefitTypeData, setDpBenefitTypeData] = useState<{ type: DpBenefitType; count: number }[]>([]);
   const [allRequests, setAllRequests] = useState<RequestData[]>([]);
   const [recentRequests, setRecentRequests] = useState<RecentRequest[]>([]);
   const [alertRequests, setAlertRequests] = useState<AlertRequest[]>([]);
@@ -101,6 +105,7 @@ export default function Dashboard() {
   const [unitFilter, setUnitFilter] = useState<string>('all');
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [conveniosOpen, setConveniosOpen] = useState(false);
+  const [beneficiosOpen, setBeneficiosOpen] = useState(false);
   
   // Date filter state
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
@@ -231,6 +236,13 @@ export default function Dashboard() {
         count: filteredData.filter(r => r.benefit_type === type).length,
       }));
       setBenefitTypeData(typeData);
+
+      // Calcular dados de benefícios DP
+      const dpTypeData = dpBenefitTypes.map(type => ({
+        type,
+        count: filteredData.filter(r => r.benefit_type === type).length,
+      }));
+      setDpBenefitTypeData(dpTypeData);
 
       const exportData = filteredData.map(req => {
         const profile = profilesMap.get(req.user_id);
@@ -544,48 +556,94 @@ export default function Dashboard() {
           />
         </div>
 
-        {/* Benefit Type Cards - Collapsible */}
-        <Collapsible 
-          open={conveniosOpen} 
-          onOpenChange={setConveniosOpen}
-          className="animate-fade-in" 
-          style={{ animationDelay: '0.35s' }}
-        >
-          <CollapsibleTrigger asChild>
-            <Card 
-              className={cn(
-                "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit",
-                "hover:border-primary/50 hover:bg-primary/5"
-              )}
-            >
-              <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
-                <div className="transform transition-transform duration-300 group-hover:scale-110">
-                  <div className="w-12 h-12 rounded-full bg-primary/15 flex items-center justify-center">
-                    <Package className="h-6 w-6 text-primary" />
+        {/* Collapsible Cards Row */}
+        <div className="flex flex-wrap gap-3">
+          {/* Convênios Card - Collapsible */}
+          <Collapsible 
+            open={conveniosOpen} 
+            onOpenChange={setConveniosOpen}
+            className="animate-fade-in" 
+            style={{ animationDelay: '0.35s' }}
+          >
+            <CollapsibleTrigger asChild>
+              <Card 
+                className={cn(
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit",
+                  "hover:border-primary/50 hover:bg-primary/5"
+                )}
+              >
+                <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
+                  <div className="transform transition-transform duration-300 group-hover:scale-110">
+                    <div className="w-12 h-12 rounded-full bg-primary/15 flex items-center justify-center">
+                      <Package className="h-6 w-6 text-primary" />
+                    </div>
                   </div>
-                </div>
-                <div className="text-center">
-                  <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Convênios
-                  </p>
-                  <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
-                    {stats.total}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1 justify-center">
-                    <ChevronDown className={cn(
-                      "h-3 w-3 transition-transform duration-200",
-                      conveniosOpen && "rotate-180"
-                    )} />
-                    {conveniosOpen ? "Fechar" : "Ver todos"}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-3">
-            <BenefitTypeCards data={benefitTypeData} total={stats.total} />
-          </CollapsibleContent>
-        </Collapsible>
+                  <div className="text-center">
+                    <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Convênios
+                    </p>
+                    <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                      {benefitTypeData.reduce((sum, item) => sum + item.count, 0)}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1 justify-center">
+                      <ChevronDown className={cn(
+                        "h-3 w-3 transition-transform duration-200",
+                        conveniosOpen && "rotate-180"
+                      )} />
+                      {conveniosOpen ? "Fechar" : "Ver todos"}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-3">
+              <BenefitTypeCards data={benefitTypeData} total={benefitTypeData.reduce((sum, item) => sum + item.count, 0)} />
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Benefícios DP Card - Collapsible */}
+          <Collapsible 
+            open={beneficiosOpen} 
+            onOpenChange={setBeneficiosOpen}
+            className="animate-fade-in" 
+            style={{ animationDelay: '0.4s' }}
+          >
+            <CollapsibleTrigger asChild>
+              <Card 
+                className={cn(
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit",
+                  "hover:border-teal-500/50 hover:bg-teal-500/5"
+                )}
+              >
+                <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
+                  <div className="transform transition-transform duration-300 group-hover:scale-110">
+                    <div className="w-12 h-12 rounded-full bg-teal-500/15 flex items-center justify-center">
+                      <Briefcase className="h-6 w-6 text-teal-600 dark:text-teal-400" />
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Benefícios
+                    </p>
+                    <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                      {dpBenefitTypeData.reduce((sum, item) => sum + item.count, 0)}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1 justify-center">
+                      <ChevronDown className={cn(
+                        "h-3 w-3 transition-transform duration-200",
+                        beneficiosOpen && "rotate-180"
+                      )} />
+                      {beneficiosOpen ? "Fechar" : "Ver todos"}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-3">
+              <DpBenefitTypeCards data={dpBenefitTypeData} total={dpBenefitTypeData.reduce((sum, item) => sum + item.count, 0)} />
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
 
         {/* Charts Grid */}
         <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
