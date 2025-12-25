@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { benefitTypeLabels, benefitTypeEmojis, statusLabels, BenefitStatus, BenefitType } from '@/types/benefits';
+import { benefitTypeLabels, statusLabels, BenefitStatus, BenefitType } from '@/types/benefits';
+import { BenefitIcon } from '@/components/ui/benefit-icon';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -472,7 +473,10 @@ export default function Solicitacoes() {
                 <SelectItem value="all">Todos os tipos</SelectItem>
                 {Object.entries(benefitTypeLabels).map(([key, label]) => (
                   <SelectItem key={key} value={key}>
-                    {benefitTypeEmojis[key as BenefitType]} {label}
+                    <div className="flex items-center gap-2">
+                      <BenefitIcon type={key as BenefitType} size="sm" />
+                      <span>{label}</span>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -599,7 +603,7 @@ export default function Solicitacoes() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span className="text-xl">{benefitTypeEmojis[request.benefit_type]}</span>
+                        <BenefitIcon type={request.benefit_type} size="lg" />
                         <span className="hidden sm:inline text-sm">{benefitTypeLabels[request.benefit_type]}</span>
                       </div>
                     </TableCell>
