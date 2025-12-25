@@ -5,7 +5,7 @@ export type ConvenioBenefitType = 'autoescola' | 'farmacia' | 'oficina' | 'vale_
 export type BeneficioBenefitType = 'plano_odontologico' | 'plano_saude' | 'vale_transporte';
 
 // Tipos de benefícios DP/RH
-export type DpBenefitType = 'alteracao_ferias' | 'aviso_folga_falta' | 'atestado' | 'contracheque' | 'abono_horas' | 'alteracao_horario' | 'operacao_domingo' | 'relatorio_ponto';
+export type DpBenefitType = 'alteracao_ferias' | 'aviso_folga_falta' | 'atestado' | 'contracheque' | 'abono_horas' | 'alteracao_horario' | 'operacao_domingo' | 'relatorio_ponto' | 'relato_anomalia';
 
 // Tipo completo alinhado com o enum do banco de dados Supabase
 export type BenefitType = ConvenioBenefitType | BeneficioBenefitType | DpBenefitType;
@@ -96,6 +96,7 @@ export const dpBenefitTypeLabels: Record<DpBenefitType, string> = {
   alteracao_horario: 'Alteração de Horário',
   operacao_domingo: 'Operação Domingo',
   relatorio_ponto: 'Relatório de Ponto',
+  relato_anomalia: 'Relato de Anomalia',
 };
 
 export const dpBenefitTypeEmojis: Record<DpBenefitType, string> = {
@@ -107,6 +108,7 @@ export const dpBenefitTypeEmojis: Record<DpBenefitType, string> = {
   alteracao_horario: '🕐',
   operacao_domingo: '📅',
   relatorio_ponto: '📊',
+  relato_anomalia: '⚠️',
 };
 
 // Labels para benefícios (planos e vale transporte)
