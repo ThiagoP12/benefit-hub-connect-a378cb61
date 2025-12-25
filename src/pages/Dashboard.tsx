@@ -22,6 +22,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
 import { exportToCSV, exportToExcel, formatDateTimeForExport } from '@/lib/exportUtils';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 const filteredBenefitTypes = benefitTypes.filter(t => t !== 'outros') as ConvenioBenefitType[];
 
@@ -99,6 +100,7 @@ export default function Dashboard() {
   const [units, setUnits] = useState<{ id: string; name: string }[]>([]);
   const [unitFilter, setUnitFilter] = useState<string>('all');
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [conveniosOpen, setConveniosOpen] = useState(false);
   
   // Date filter state
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
@@ -543,26 +545,46 @@ export default function Dashboard() {
         </div>
 
         {/* Benefit Type Cards - Collapsible */}
-        <Collapsible defaultOpen className="animate-fade-in" style={{ animationDelay: '0.35s' }}>
-          <Card className="border-2 border-primary/10">
-            <CollapsibleTrigger asChild>
-              <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors flex flex-row items-center justify-between py-3 px-4">
-                <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                  <Package className="h-5 w-5 text-primary" />
-                  Convênios
-                  <span className="text-sm font-normal text-muted-foreground">
-                    ({stats.total} solicitações)
-                  </span>
-                </CardTitle>
-                <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
-              </CardHeader>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <CardContent className="pt-0 pb-4">
-                <BenefitTypeCards data={benefitTypeData} total={stats.total} />
+        <Collapsible 
+          open={conveniosOpen} 
+          onOpenChange={setConveniosOpen}
+          className="animate-fade-in" 
+          style={{ animationDelay: '0.35s' }}
+        >
+          <CollapsibleTrigger asChild>
+            <Card 
+              className={cn(
+                "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit",
+                "hover:border-primary/50 hover:bg-primary/5"
+              )}
+            >
+              <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
+                <div className="transform transition-transform duration-300 group-hover:scale-110">
+                  <div className="w-12 h-12 rounded-full bg-primary/15 flex items-center justify-center">
+                    <Package className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
+                <div className="text-center">
+                  <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    Convênios
+                  </p>
+                  <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                    {stats.total}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1 justify-center">
+                    <ChevronDown className={cn(
+                      "h-3 w-3 transition-transform duration-200",
+                      conveniosOpen && "rotate-180"
+                    )} />
+                    {conveniosOpen ? "Fechar" : "Ver todos"}
+                  </p>
+                </div>
               </CardContent>
-            </CollapsibleContent>
-          </Card>
+            </Card>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-3">
+            <BenefitTypeCards data={benefitTypeData} total={stats.total} />
+          </CollapsibleContent>
         </Collapsible>
 
         {/* Charts Grid */}
