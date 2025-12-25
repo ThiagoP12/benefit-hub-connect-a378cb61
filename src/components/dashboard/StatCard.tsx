@@ -99,7 +99,7 @@ export function StatCard({
   return (
     <div
       className={cn(
-        'group rounded-xl border p-4 sm:p-5 lg:p-6 transition-all duration-300',
+        'group rounded-xl border p-3 sm:p-4 transition-all duration-300',
         'hover:shadow-lg hover:-translate-y-0.5',
         'animate-fade-in opacity-0',
         variantStyles[variant],
@@ -116,7 +116,7 @@ export function StatCard({
           <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">
             {title}
           </p>
-          <p className="mt-1 sm:mt-2 text-xl sm:text-2xl lg:text-3xl font-bold text-foreground">
+          <p className="mt-1 text-lg sm:text-xl lg:text-2xl font-bold text-foreground">
             <AnimatedNumber value={value} duration={1200 + animationDelay * 200} />
           </p>
           {trend && (
@@ -135,10 +135,10 @@ export function StatCard({
           )}
         </div>
         <div className={cn(
-          'flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl transition-all duration-300',
+          'flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl transition-all duration-300',
           iconStyles[variant]
         )}>
-          <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
+          <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
         </div>
       </div>
     </div>

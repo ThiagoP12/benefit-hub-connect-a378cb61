@@ -667,28 +667,28 @@ export default function Dashboard() {
         {/* Collapsible Cards Section */}
         <div className="space-y-4">
           {/* Cards Row - grid for consistent sizing */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-9 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-9 gap-4">
             {/* 1. Convênios Card - Collapsible Trigger */}
             {checkModuleAccess('convenios') && (
               <Card 
                 className={cn(
-                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.05] active:scale-[0.95] group animate-fade-in h-[160px]",
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.05] active:scale-[0.95] group animate-fade-in h-[130px]",
                   "hover:border-primary/50 hover:bg-primary/5"
                 )}
                 style={{ animationDelay: '0.35s' }}
                 onClick={() => setConveniosOpen(!conveniosOpen)}
               >
-                <CardContent className="p-4 flex flex-col items-center justify-center gap-3 h-full">
+                <CardContent className="p-3 flex flex-col items-center justify-center gap-2 h-full">
                   <div className="transform transition-transform duration-300 group-hover:scale-110">
-                    <div className="w-12 h-12 rounded-full bg-primary/15 flex items-center justify-center">
-                      <Package className="h-6 w-6 text-primary" />
+                    <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center">
+                      <Package className="h-5 w-5 text-primary" />
                     </div>
                   </div>
                   <div className="text-center">
                     <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Convênios
                     </p>
-                    <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                    <p className="text-lg sm:text-xl font-bold text-foreground mt-0.5">
                       {benefitTypeData.reduce((sum, item) => sum + item.count, 0)}
                     </p>
                     <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1 justify-center">
@@ -707,23 +707,23 @@ export default function Dashboard() {
             {checkModuleAccess('alteracao_ferias') && (
               <Card 
                 className={cn(
-                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.05] active:scale-[0.95] group animate-fade-in h-[160px]",
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.05] active:scale-[0.95] group animate-fade-in h-[130px]",
                   "hover:border-amber-500/50 hover:bg-amber-500/5"
                 )}
                 style={{ animationDelay: '0.4s' }}
                 onClick={() => navigate('/solicitacoes?benefit_type=alteracao_ferias')}
               >
-                <CardContent className="p-4 flex flex-col items-center justify-center gap-3 h-full">
+                <CardContent className="p-3 flex flex-col items-center justify-center gap-2 h-full">
                   <div className="transform transition-transform duration-300 group-hover:scale-110">
-                    <div className="w-12 h-12 rounded-full bg-amber-500/15 flex items-center justify-center">
-                      <Palmtree className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                    <div className="w-10 h-10 rounded-full bg-amber-500/15 flex items-center justify-center">
+                      <Palmtree className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                     </div>
                   </div>
                   <div className="text-center">
                     <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Alteração de Férias
                     </p>
-                    <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                    <p className="text-lg sm:text-xl font-bold text-foreground mt-0.5">
                       {alteracaoFeriasCount}
                     </p>
                   </div>
@@ -735,23 +735,23 @@ export default function Dashboard() {
             {checkModuleAccess('alteracao_horario') && (
               <Card 
                 className={cn(
-                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.05] active:scale-[0.95] group animate-fade-in h-[160px]",
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.05] active:scale-[0.95] group animate-fade-in h-[130px]",
                   "hover:border-violet-500/50 hover:bg-violet-500/5"
                 )}
                 style={{ animationDelay: '0.45s' }}
                 onClick={() => navigate('/solicitacoes?benefit_type=alteracao_horario')}
               >
-                <CardContent className="p-4 flex flex-col items-center justify-center gap-3 h-full">
+                <CardContent className="p-3 flex flex-col items-center justify-center gap-2 h-full">
                   <div className="transform transition-transform duration-300 group-hover:scale-110">
-                    <div className="w-12 h-12 rounded-full bg-violet-500/15 flex items-center justify-center">
-                      <Clock className="h-6 w-6 text-violet-600 dark:text-violet-400" />
+                    <div className="w-10 h-10 rounded-full bg-violet-500/15 flex items-center justify-center">
+                      <Clock className="h-5 w-5 text-violet-600 dark:text-violet-400" />
                     </div>
                   </div>
                   <div className="text-center">
                     <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Alteração de Horário
                     </p>
-                    <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                    <p className="text-lg sm:text-xl font-bold text-foreground mt-0.5">
                       {alteracaoHorarioCount}
                     </p>
                   </div>
@@ -763,23 +763,23 @@ export default function Dashboard() {
             {checkModuleAccess('atestado') && (
               <Card 
                 className={cn(
-                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.05] active:scale-[0.95] group animate-fade-in h-[160px]",
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.05] active:scale-[0.95] group animate-fade-in h-[130px]",
                   "hover:border-rose-500/50 hover:bg-rose-500/5"
                 )}
                 style={{ animationDelay: '0.5s' }}
                 onClick={() => navigate('/solicitacoes?benefit_type=atestado')}
               >
-                <CardContent className="p-4 flex flex-col items-center justify-center gap-3 h-full">
+                <CardContent className="p-3 flex flex-col items-center justify-center gap-2 h-full">
                   <div className="transform transition-transform duration-300 group-hover:scale-110">
-                    <div className="w-12 h-12 rounded-full bg-rose-500/15 flex items-center justify-center">
-                      <Stethoscope className="h-6 w-6 text-rose-600 dark:text-rose-400" />
+                    <div className="w-10 h-10 rounded-full bg-rose-500/15 flex items-center justify-center">
+                      <Stethoscope className="h-5 w-5 text-rose-600 dark:text-rose-400" />
                     </div>
                   </div>
                   <div className="text-center">
                     <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Atestado
                     </p>
-                    <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                    <p className="text-lg sm:text-xl font-bold text-foreground mt-0.5">
                       {atestadoCount}
                     </p>
                   </div>
@@ -791,23 +791,23 @@ export default function Dashboard() {
             {checkModuleAccess('aviso_folga_falta') && (
               <Card 
                 className={cn(
-                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.05] active:scale-[0.95] group animate-fade-in h-[160px]",
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.05] active:scale-[0.95] group animate-fade-in h-[130px]",
                   "hover:border-slate-500/50 hover:bg-slate-500/5"
                 )}
                 style={{ animationDelay: '0.55s' }}
                 onClick={() => navigate('/solicitacoes?benefit_type=aviso_folga_falta')}
               >
-                <CardContent className="p-4 flex flex-col items-center justify-center gap-3 h-full">
+                <CardContent className="p-3 flex flex-col items-center justify-center gap-2 h-full">
                   <div className="transform transition-transform duration-300 group-hover:scale-110">
-                    <div className="w-12 h-12 rounded-full bg-slate-500/15 flex items-center justify-center">
-                      <ClipboardList className="h-6 w-6 text-slate-600 dark:text-slate-400" />
+                    <div className="w-10 h-10 rounded-full bg-slate-500/15 flex items-center justify-center">
+                      <ClipboardList className="h-5 w-5 text-slate-600 dark:text-slate-400" />
                     </div>
                   </div>
                   <div className="text-center">
                     <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Aviso Folga/Falta
                     </p>
-                    <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                    <p className="text-lg sm:text-xl font-bold text-foreground mt-0.5">
                       {avisoFolgaCount}
                     </p>
                   </div>
@@ -819,23 +819,23 @@ export default function Dashboard() {
             {checkModuleAccess('beneficios') && (
               <Card 
                 className={cn(
-                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.05] active:scale-[0.95] group animate-fade-in h-[160px]",
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.05] active:scale-[0.95] group animate-fade-in h-[130px]",
                   "hover:border-pink-500/50 hover:bg-pink-500/5"
                 )}
                 style={{ animationDelay: '0.6s' }}
                 onClick={() => setBeneficiosOpen(!beneficiosOpen)}
               >
-                <CardContent className="p-4 flex flex-col items-center justify-center gap-3 h-full">
+                <CardContent className="p-3 flex flex-col items-center justify-center gap-2 h-full">
                   <div className="transform transition-transform duration-300 group-hover:scale-110">
-                    <div className="w-12 h-12 rounded-full bg-pink-500/15 flex items-center justify-center">
-                      <Briefcase className="h-6 w-6 text-pink-600 dark:text-pink-400" />
+                    <div className="w-10 h-10 rounded-full bg-pink-500/15 flex items-center justify-center">
+                      <Briefcase className="h-5 w-5 text-pink-600 dark:text-pink-400" />
                     </div>
                   </div>
                   <div className="text-center">
                     <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Benefícios
                     </p>
-                    <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                    <p className="text-lg sm:text-xl font-bold text-foreground mt-0.5">
                       {beneficioBenefitTypeData.reduce((sum, item) => sum + item.count, 0)}
                     </p>
                     <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1 justify-center">
@@ -854,23 +854,23 @@ export default function Dashboard() {
             {checkModuleAccess('contracheque') && (
               <Card 
                 className={cn(
-                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.05] active:scale-[0.95] group animate-fade-in h-[160px]",
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.05] active:scale-[0.95] group animate-fade-in h-[130px]",
                   "hover:border-emerald-500/50 hover:bg-emerald-500/5"
                 )}
                 style={{ animationDelay: '0.65s' }}
                 onClick={() => navigate('/solicitacoes?benefit_type=contracheque')}
               >
-                <CardContent className="p-4 flex flex-col items-center justify-center gap-3 h-full">
+                <CardContent className="p-3 flex flex-col items-center justify-center gap-2 h-full">
                   <div className="transform transition-transform duration-300 group-hover:scale-110">
-                    <div className="w-12 h-12 rounded-full bg-emerald-500/15 flex items-center justify-center">
-                      <Receipt className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                    <div className="w-10 h-10 rounded-full bg-emerald-500/15 flex items-center justify-center">
+                      <Receipt className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                     </div>
                   </div>
                   <div className="text-center">
                     <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Contracheque
                     </p>
-                    <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                    <p className="text-lg sm:text-xl font-bold text-foreground mt-0.5">
                       {contrachequeCount}
                     </p>
                   </div>
@@ -882,23 +882,23 @@ export default function Dashboard() {
             {checkModuleAccess('relatorio_ponto') && (
               <Card 
                 className={cn(
-                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.05] active:scale-[0.95] group animate-fade-in h-[160px]",
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.05] active:scale-[0.95] group animate-fade-in h-[130px]",
                   "hover:border-cyan-500/50 hover:bg-cyan-500/5"
                 )}
                 style={{ animationDelay: '0.7s' }}
                 onClick={() => navigate('/solicitacoes?benefit_type=relatorio_ponto')}
               >
-                <CardContent className="p-4 flex flex-col items-center justify-center gap-3 h-full">
+                <CardContent className="p-3 flex flex-col items-center justify-center gap-2 h-full">
                   <div className="transform transition-transform duration-300 group-hover:scale-110">
-                    <div className="w-12 h-12 rounded-full bg-cyan-500/15 flex items-center justify-center">
-                      <FileCheck className="h-6 w-6 text-cyan-600 dark:text-cyan-400" />
+                    <div className="w-10 h-10 rounded-full bg-cyan-500/15 flex items-center justify-center">
+                      <FileCheck className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
                     </div>
                   </div>
                   <div className="text-center">
                     <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Relatório de Ponto
                     </p>
-                    <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                    <p className="text-lg sm:text-xl font-bold text-foreground mt-0.5">
                       {relatorioPontoCount}
                     </p>
                   </div>
@@ -910,23 +910,23 @@ export default function Dashboard() {
             {checkModuleAccess('relato_anomalia') && (
               <Card 
                 className={cn(
-                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.05] active:scale-[0.95] group animate-fade-in h-[160px]",
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.05] active:scale-[0.95] group animate-fade-in h-[130px]",
                   "hover:border-orange-600/50 hover:bg-orange-600/5"
                 )}
                 style={{ animationDelay: '0.75s' }}
                 onClick={() => navigate('/solicitacoes?benefit_type=relato_anomalia')}
               >
-                <CardContent className="p-4 flex flex-col items-center justify-center gap-3 h-full">
+                <CardContent className="p-3 flex flex-col items-center justify-center gap-2 h-full">
                   <div className="transform transition-transform duration-300 group-hover:scale-110">
-                    <div className="w-12 h-12 rounded-full bg-orange-600/15 flex items-center justify-center">
-                      <AlertOctagon className="h-6 w-6 text-orange-700 dark:text-orange-400" />
+                    <div className="w-10 h-10 rounded-full bg-orange-600/15 flex items-center justify-center">
+                      <AlertOctagon className="h-5 w-5 text-orange-700 dark:text-orange-400" />
                     </div>
                   </div>
                   <div className="text-center">
                     <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Relato de Anomalia
                     </p>
-                    <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                    <p className="text-lg sm:text-xl font-bold text-foreground mt-0.5">
                       {relatoAnomaliaCount}
                     </p>
                   </div>
