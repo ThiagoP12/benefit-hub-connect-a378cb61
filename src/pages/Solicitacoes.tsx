@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { benefitTypeLabels, statusLabels, BenefitStatus, BenefitType, ConvenioBenefitType } from '@/types/benefits';
 import { useAuth } from '@/contexts/AuthContext';
-import { getBenefitTypesFromModules } from '@/lib/moduleMapping';
+import { getBenefitTypesFromModules, getModulesFromBenefitTypes, hasModuleAccess } from '@/lib/moduleMapping';
 import { BenefitIcon } from '@/components/ui/benefit-icon';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Input } from '@/components/ui/input';
@@ -133,6 +133,12 @@ export default function Solicitacoes() {
 
   // Module permissions state
   const [allowedBenefitTypes, setAllowedBenefitTypes] = useState<string[]>([]);
+  const [userModules, setUserModules] = useState<string[]>([]);
+
+  // Helper function to check module access
+  const checkModuleAccess = (moduleKey: string): boolean => {
+    return hasModuleAccess(userModules, moduleKey, userRole);
+  };
 
   useEffect(() => {
     fetchModulePermissions();
@@ -149,6 +155,7 @@ export default function Solicitacoes() {
     // Admin has access to all
     if (userRole === 'admin') {
       setAllowedBenefitTypes([]);
+      setUserModules([]);
       return;
     }
 
@@ -162,10 +169,12 @@ export default function Solicitacoes() {
 
       if (data && data.length > 0) {
         const modules = data.map(d => d.module);
+        setUserModules(modules);
         const benefitTypes = getBenefitTypesFromModules(modules);
         setAllowedBenefitTypes(benefitTypes);
       } else {
         // No permissions = no access (except to own requests for colaborador)
+        setUserModules([]);
         setAllowedBenefitTypes([]);
       }
     } catch (err) {
@@ -558,15 +567,15 @@ export default function Solicitacoes() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os tipos</SelectItem>
-                <SelectItem value="convenios">🏪 Convênios</SelectItem>
-                <SelectItem value="alteracao_ferias">🏖️ Alteração de Férias</SelectItem>
-                <SelectItem value="alteracao_horario">🕐 Alteração de Horário</SelectItem>
-                <SelectItem value="atestado">🏥 Atestado</SelectItem>
-                <SelectItem value="aviso_folga_falta">📋 Aviso Folga/Falta</SelectItem>
-                <SelectItem value="beneficios">💼 Benefícios</SelectItem>
-                <SelectItem value="contracheque">💰 Contracheque</SelectItem>
-                <SelectItem value="relatorio_ponto">📊 Relatório de Ponto</SelectItem>
-                <SelectItem value="relato_anomalia">⚠️ Relato de Anomalia</SelectItem>
+                {checkModuleAccess('convenios') && <SelectItem value="convenios">🏪 Convênios</SelectItem>}
+                {checkModuleAccess('alteracao_ferias') && <SelectItem value="alteracao_ferias">🏖️ Alteração de Férias</SelectItem>}
+                {checkModuleAccess('alteracao_horario') && <SelectItem value="alteracao_horario">🕐 Alteração de Horário</SelectItem>}
+                {checkModuleAccess('atestado') && <SelectItem value="atestado">🏥 Atestado</SelectItem>}
+                {checkModuleAccess('aviso_folga_falta') && <SelectItem value="aviso_folga_falta">📋 Aviso Folga/Falta</SelectItem>}
+                {checkModuleAccess('convenios') && <SelectItem value="beneficios">💼 Benefícios</SelectItem>}
+                {checkModuleAccess('contracheque') && <SelectItem value="contracheque">💰 Contracheque</SelectItem>}
+                {checkModuleAccess('relatorio_ponto') && <SelectItem value="relatorio_ponto">📊 Relatório de Ponto</SelectItem>}
+                {checkModuleAccess('relato_anomalia') && <SelectItem value="relato_anomalia">⚠️ Relato de Anomalia</SelectItem>}
               </SelectContent>
             </Select>
             <Select value={unitFilter} onValueChange={setUnitFilter}>

@@ -11,6 +11,8 @@ import { FileText, Clock, CheckCircle, FolderOpen, TrendingUp, Eye, Download, Fi
 import { supabase } from '@/integrations/supabase/client';
 import { BenefitType, ConvenioBenefitType, BeneficioBenefitType, benefitTypeLabels, benefitTypeEmojis, statusLabels } from '@/types/benefits';
 import { BenefitIcon } from '@/components/ui/benefit-icon';
+import { useAuth } from '@/contexts/AuthContext';
+import { getBenefitTypesFromModules, hasModuleAccess } from '@/lib/moduleMapping';
 
 const beneficioBenefitTypes: BeneficioBenefitType[] = ['plano_odontologico', 'plano_saude', 'vale_transporte'];
 import { benefitTypes } from '@/data/mockData';
@@ -92,6 +94,7 @@ const BENEFIT_COLORS: Record<string, string> = {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { user, userRole } = useAuth();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>({ 
     total: 0, today: 0, abertos: 0, emAnalise: 0, aprovados: 0, reprovados: 0,
@@ -117,6 +120,9 @@ export default function Dashboard() {
   const [conveniosOpen, setConveniosOpen] = useState(false);
   const [beneficiosOpen, setBeneficiosOpen] = useState(false);
   
+  // Module permissions state
+  const [userModules, setUserModules] = useState<string[]>([]);
+  
   // Date filter state - direct calendar
   const [customDateRange, setCustomDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
     from: undefined,
@@ -126,14 +132,49 @@ export default function Dashboard() {
   // Category filter
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
+  // Helper function to check module access
+  const checkModuleAccess = (moduleKey: string): boolean => {
+    return hasModuleAccess(userModules, moduleKey, userRole);
+  };
+
   useEffect(() => {
     fetchUnits();
     fetchSlaConfigs();
-  }, []);
+    fetchModulePermissions();
+  }, [user?.id]);
 
   useEffect(() => {
     fetchDashboardData();
-  }, [customDateRange, unitFilter, categoryFilter, slaConfigs]);
+  }, [customDateRange, unitFilter, categoryFilter, slaConfigs, userModules]);
+
+  // Fetch user's module permissions
+  const fetchModulePermissions = async () => {
+    if (!user?.id) return;
+    
+    // Admin has access to all
+    if (userRole === 'admin') {
+      setUserModules([]);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('user_module_permissions')
+        .select('module')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const modules = data.map(d => d.module);
+        setUserModules(modules);
+      } else {
+        setUserModules([]);
+      }
+    } catch (err) {
+      console.error('Error fetching module permissions:', err);
+    }
+  };
 
   const fetchSlaConfigs = async () => {
     try {
@@ -611,267 +652,289 @@ export default function Dashboard() {
           {/* Cards Row - items-start prevents stretching */}
           <div className="flex flex-wrap gap-3 items-start">
             {/* 1. Convênios Card - Collapsible Trigger */}
-            <Card 
-              className={cn(
-                "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit animate-fade-in",
-                "hover:border-primary/50 hover:bg-primary/5"
-              )}
-              style={{ animationDelay: '0.35s' }}
-              onClick={() => setConveniosOpen(!conveniosOpen)}
-            >
-              <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
-                <div className="transform transition-transform duration-300 group-hover:scale-110">
-                  <div className="w-12 h-12 rounded-full bg-primary/15 flex items-center justify-center">
-                    <Package className="h-6 w-6 text-primary" />
+            {checkModuleAccess('convenios') && (
+              <Card 
+                className={cn(
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit animate-fade-in",
+                  "hover:border-primary/50 hover:bg-primary/5"
+                )}
+                style={{ animationDelay: '0.35s' }}
+                onClick={() => setConveniosOpen(!conveniosOpen)}
+              >
+                <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
+                  <div className="transform transition-transform duration-300 group-hover:scale-110">
+                    <div className="w-12 h-12 rounded-full bg-primary/15 flex items-center justify-center">
+                      <Package className="h-6 w-6 text-primary" />
+                    </div>
                   </div>
-                </div>
-                <div className="text-center">
-                  <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Convênios
-                  </p>
-                  <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
-                    {benefitTypeData.reduce((sum, item) => sum + item.count, 0)}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1 justify-center">
-                    <ChevronDown className={cn(
-                      "h-3 w-3 transition-transform duration-200",
-                      conveniosOpen && "rotate-180"
-                    )} />
-                    {conveniosOpen ? "Fechar" : "Ver todos"}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="text-center">
+                    <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Convênios
+                    </p>
+                    <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                      {benefitTypeData.reduce((sum, item) => sum + item.count, 0)}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1 justify-center">
+                      <ChevronDown className={cn(
+                        "h-3 w-3 transition-transform duration-200",
+                        conveniosOpen && "rotate-180"
+                      )} />
+                      {conveniosOpen ? "Fechar" : "Ver todos"}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* 2. Alteração de Férias Card */}
-            <Card 
-              className={cn(
-                "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit animate-fade-in",
-                "hover:border-amber-500/50 hover:bg-amber-500/5"
-              )}
-              style={{ animationDelay: '0.4s' }}
-              onClick={() => navigate('/solicitacoes?benefit_type=alteracao_ferias')}
-            >
-              <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
-                <div className="transform transition-transform duration-300 group-hover:scale-110">
-                  <div className="w-12 h-12 rounded-full bg-amber-500/15 flex items-center justify-center">
-                    <Palmtree className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+            {checkModuleAccess('alteracao_ferias') && (
+              <Card 
+                className={cn(
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit animate-fade-in",
+                  "hover:border-amber-500/50 hover:bg-amber-500/5"
+                )}
+                style={{ animationDelay: '0.4s' }}
+                onClick={() => navigate('/solicitacoes?benefit_type=alteracao_ferias')}
+              >
+                <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
+                  <div className="transform transition-transform duration-300 group-hover:scale-110">
+                    <div className="w-12 h-12 rounded-full bg-amber-500/15 flex items-center justify-center">
+                      <Palmtree className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+                    </div>
                   </div>
-                </div>
-                <div className="text-center">
-                  <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Alteração de Férias
-                  </p>
-                  <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
-                    {alteracaoFeriasCount}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="text-center">
+                    <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Alteração de Férias
+                    </p>
+                    <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                      {alteracaoFeriasCount}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* 3. Alteração de Horário Card */}
-            <Card 
-              className={cn(
-                "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit animate-fade-in",
-                "hover:border-violet-500/50 hover:bg-violet-500/5"
-              )}
-              style={{ animationDelay: '0.45s' }}
-              onClick={() => navigate('/solicitacoes?benefit_type=alteracao_horario')}
-            >
-              <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
-                <div className="transform transition-transform duration-300 group-hover:scale-110">
-                  <div className="w-12 h-12 rounded-full bg-violet-500/15 flex items-center justify-center">
-                    <Clock className="h-6 w-6 text-violet-600 dark:text-violet-400" />
+            {checkModuleAccess('alteracao_horario') && (
+              <Card 
+                className={cn(
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit animate-fade-in",
+                  "hover:border-violet-500/50 hover:bg-violet-500/5"
+                )}
+                style={{ animationDelay: '0.45s' }}
+                onClick={() => navigate('/solicitacoes?benefit_type=alteracao_horario')}
+              >
+                <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
+                  <div className="transform transition-transform duration-300 group-hover:scale-110">
+                    <div className="w-12 h-12 rounded-full bg-violet-500/15 flex items-center justify-center">
+                      <Clock className="h-6 w-6 text-violet-600 dark:text-violet-400" />
+                    </div>
                   </div>
-                </div>
-                <div className="text-center">
-                  <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Alteração de Horário
-                  </p>
-                  <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
-                    {alteracaoHorarioCount}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="text-center">
+                    <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Alteração de Horário
+                    </p>
+                    <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                      {alteracaoHorarioCount}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* 4. Atestado Card */}
-            <Card 
-              className={cn(
-                "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit animate-fade-in",
-                "hover:border-rose-500/50 hover:bg-rose-500/5"
-              )}
-              style={{ animationDelay: '0.5s' }}
-              onClick={() => navigate('/solicitacoes?benefit_type=atestado')}
-            >
-              <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
-                <div className="transform transition-transform duration-300 group-hover:scale-110">
-                  <div className="w-12 h-12 rounded-full bg-rose-500/15 flex items-center justify-center">
-                    <Stethoscope className="h-6 w-6 text-rose-600 dark:text-rose-400" />
+            {checkModuleAccess('atestado') && (
+              <Card 
+                className={cn(
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit animate-fade-in",
+                  "hover:border-rose-500/50 hover:bg-rose-500/5"
+                )}
+                style={{ animationDelay: '0.5s' }}
+                onClick={() => navigate('/solicitacoes?benefit_type=atestado')}
+              >
+                <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
+                  <div className="transform transition-transform duration-300 group-hover:scale-110">
+                    <div className="w-12 h-12 rounded-full bg-rose-500/15 flex items-center justify-center">
+                      <Stethoscope className="h-6 w-6 text-rose-600 dark:text-rose-400" />
+                    </div>
                   </div>
-                </div>
-                <div className="text-center">
-                  <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Atestado
-                  </p>
-                  <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
-                    {atestadoCount}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="text-center">
+                    <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Atestado
+                    </p>
+                    <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                      {atestadoCount}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* 5. Aviso Folga/Falta Card */}
-            <Card 
-              className={cn(
-                "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit animate-fade-in",
-                "hover:border-slate-500/50 hover:bg-slate-500/5"
-              )}
-              style={{ animationDelay: '0.55s' }}
-              onClick={() => navigate('/solicitacoes?benefit_type=aviso_folga_falta')}
-            >
-              <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
-                <div className="transform transition-transform duration-300 group-hover:scale-110">
-                  <div className="w-12 h-12 rounded-full bg-slate-500/15 flex items-center justify-center">
-                    <ClipboardList className="h-6 w-6 text-slate-600 dark:text-slate-400" />
+            {checkModuleAccess('aviso_folga_falta') && (
+              <Card 
+                className={cn(
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit animate-fade-in",
+                  "hover:border-slate-500/50 hover:bg-slate-500/5"
+                )}
+                style={{ animationDelay: '0.55s' }}
+                onClick={() => navigate('/solicitacoes?benefit_type=aviso_folga_falta')}
+              >
+                <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
+                  <div className="transform transition-transform duration-300 group-hover:scale-110">
+                    <div className="w-12 h-12 rounded-full bg-slate-500/15 flex items-center justify-center">
+                      <ClipboardList className="h-6 w-6 text-slate-600 dark:text-slate-400" />
+                    </div>
                   </div>
-                </div>
-                <div className="text-center">
-                  <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Aviso Folga/Falta
-                  </p>
-                  <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
-                    {avisoFolgaCount}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="text-center">
+                    <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Aviso Folga/Falta
+                    </p>
+                    <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                      {avisoFolgaCount}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-            {/* 6. Benefícios Card - Collapsible Trigger */}
-            <Card 
-              className={cn(
-                "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit animate-fade-in",
-                "hover:border-pink-500/50 hover:bg-pink-500/5"
-              )}
-              style={{ animationDelay: '0.6s' }}
-              onClick={() => setBeneficiosOpen(!beneficiosOpen)}
-            >
-              <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
-                <div className="transform transition-transform duration-300 group-hover:scale-110">
-                  <div className="w-12 h-12 rounded-full bg-pink-500/15 flex items-center justify-center">
-                    <Briefcase className="h-6 w-6 text-pink-600 dark:text-pink-400" />
+            {/* 6. Benefícios Card - Collapsible Trigger (uses convenios permission since they're related) */}
+            {checkModuleAccess('convenios') && (
+              <Card 
+                className={cn(
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit animate-fade-in",
+                  "hover:border-pink-500/50 hover:bg-pink-500/5"
+                )}
+                style={{ animationDelay: '0.6s' }}
+                onClick={() => setBeneficiosOpen(!beneficiosOpen)}
+              >
+                <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
+                  <div className="transform transition-transform duration-300 group-hover:scale-110">
+                    <div className="w-12 h-12 rounded-full bg-pink-500/15 flex items-center justify-center">
+                      <Briefcase className="h-6 w-6 text-pink-600 dark:text-pink-400" />
+                    </div>
                   </div>
-                </div>
-                <div className="text-center">
-                  <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Benefícios
-                  </p>
-                  <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
-                    {beneficioBenefitTypeData.reduce((sum, item) => sum + item.count, 0)}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1 justify-center">
-                    <ChevronDown className={cn(
-                      "h-3 w-3 transition-transform duration-200",
-                      beneficiosOpen && "rotate-180"
-                    )} />
-                    {beneficiosOpen ? "Fechar" : "Ver todos"}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="text-center">
+                    <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Benefícios
+                    </p>
+                    <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                      {beneficioBenefitTypeData.reduce((sum, item) => sum + item.count, 0)}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1 justify-center">
+                      <ChevronDown className={cn(
+                        "h-3 w-3 transition-transform duration-200",
+                        beneficiosOpen && "rotate-180"
+                      )} />
+                      {beneficiosOpen ? "Fechar" : "Ver todos"}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* 7. Contracheque Card */}
-            <Card 
-              className={cn(
-                "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit animate-fade-in",
-                "hover:border-emerald-500/50 hover:bg-emerald-500/5"
-              )}
-              style={{ animationDelay: '0.65s' }}
-              onClick={() => navigate('/solicitacoes?benefit_type=contracheque')}
-            >
-              <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
-                <div className="transform transition-transform duration-300 group-hover:scale-110">
-                  <div className="w-12 h-12 rounded-full bg-emerald-500/15 flex items-center justify-center">
-                    <Receipt className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+            {checkModuleAccess('contracheque') && (
+              <Card 
+                className={cn(
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit animate-fade-in",
+                  "hover:border-emerald-500/50 hover:bg-emerald-500/5"
+                )}
+                style={{ animationDelay: '0.65s' }}
+                onClick={() => navigate('/solicitacoes?benefit_type=contracheque')}
+              >
+                <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
+                  <div className="transform transition-transform duration-300 group-hover:scale-110">
+                    <div className="w-12 h-12 rounded-full bg-emerald-500/15 flex items-center justify-center">
+                      <Receipt className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+                    </div>
                   </div>
-                </div>
-                <div className="text-center">
-                  <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Contracheque
-                  </p>
-                  <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
-                    {contrachequeCount}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="text-center">
+                    <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Contracheque
+                    </p>
+                    <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                      {contrachequeCount}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* 8. Relatório de Ponto Card */}
-            <Card 
-              className={cn(
-                "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit animate-fade-in",
-                "hover:border-cyan-500/50 hover:bg-cyan-500/5"
-              )}
-              style={{ animationDelay: '0.7s' }}
-              onClick={() => navigate('/solicitacoes?benefit_type=relatorio_ponto')}
-            >
-              <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
-                <div className="transform transition-transform duration-300 group-hover:scale-110">
-                  <div className="w-12 h-12 rounded-full bg-cyan-500/15 flex items-center justify-center">
-                    <FileCheck className="h-6 w-6 text-cyan-600 dark:text-cyan-400" />
+            {checkModuleAccess('relatorio_ponto') && (
+              <Card 
+                className={cn(
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit animate-fade-in",
+                  "hover:border-cyan-500/50 hover:bg-cyan-500/5"
+                )}
+                style={{ animationDelay: '0.7s' }}
+                onClick={() => navigate('/solicitacoes?benefit_type=relatorio_ponto')}
+              >
+                <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
+                  <div className="transform transition-transform duration-300 group-hover:scale-110">
+                    <div className="w-12 h-12 rounded-full bg-cyan-500/15 flex items-center justify-center">
+                      <FileCheck className="h-6 w-6 text-cyan-600 dark:text-cyan-400" />
+                    </div>
                   </div>
-                </div>
-                <div className="text-center">
-                  <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Relatório de Ponto
-                  </p>
-                  <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
-                    {relatorioPontoCount}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="text-center">
+                    <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Relatório de Ponto
+                    </p>
+                    <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                      {relatorioPontoCount}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* 9. Relato de Anomalia Card */}
-            <Card 
-              className={cn(
-                "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit animate-fade-in",
-                "hover:border-orange-600/50 hover:bg-orange-600/5"
-              )}
-              style={{ animationDelay: '0.75s' }}
-              onClick={() => navigate('/solicitacoes?benefit_type=relato_anomalia')}
-            >
-              <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
-                <div className="transform transition-transform duration-300 group-hover:scale-110">
-                  <div className="w-12 h-12 rounded-full bg-orange-600/15 flex items-center justify-center">
-                    <AlertOctagon className="h-6 w-6 text-orange-700 dark:text-orange-400" />
+            {checkModuleAccess('relato_anomalia') && (
+              <Card 
+                className={cn(
+                  "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit animate-fade-in",
+                  "hover:border-orange-600/50 hover:bg-orange-600/5"
+                )}
+                style={{ animationDelay: '0.75s' }}
+                onClick={() => navigate('/solicitacoes?benefit_type=relato_anomalia')}
+              >
+                <CardContent className="p-4 flex flex-col items-center gap-3 min-w-[140px]">
+                  <div className="transform transition-transform duration-300 group-hover:scale-110">
+                    <div className="w-12 h-12 rounded-full bg-orange-600/15 flex items-center justify-center">
+                      <AlertOctagon className="h-6 w-6 text-orange-700 dark:text-orange-400" />
+                    </div>
                   </div>
-                </div>
-                <div className="text-center">
-                  <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Relato de Anomalia
-                  </p>
-                  <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
-                    {relatoAnomaliaCount}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="text-center">
+                    <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Relato de Anomalia
+                    </p>
+                    <p className="text-xl sm:text-2xl font-bold text-foreground mt-1">
+                      {relatoAnomaliaCount}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           {/* Expanded Content - Convênios (appears below all cards) */}
-          <Collapsible open={conveniosOpen} onOpenChange={setConveniosOpen}>
-            <CollapsibleContent className="animate-fade-in">
-              <BenefitTypeCards data={benefitTypeData} total={benefitTypeData.reduce((sum, item) => sum + item.count, 0)} />
-            </CollapsibleContent>
-          </Collapsible>
+          {checkModuleAccess('convenios') && (
+            <Collapsible open={conveniosOpen} onOpenChange={setConveniosOpen}>
+              <CollapsibleContent className="animate-fade-in">
+                <BenefitTypeCards data={benefitTypeData} total={benefitTypeData.reduce((sum, item) => sum + item.count, 0)} />
+              </CollapsibleContent>
+            </Collapsible>
+          )}
 
           {/* Expanded Content - Benefícios (appears below all cards) */}
-          <Collapsible open={beneficiosOpen} onOpenChange={setBeneficiosOpen}>
-            <CollapsibleContent className="animate-fade-in">
-              <BeneficioBenefitTypeCards data={beneficioBenefitTypeData} total={beneficioBenefitTypeData.reduce((sum, item) => sum + item.count, 0)} />
-            </CollapsibleContent>
-          </Collapsible>
+          {checkModuleAccess('convenios') && (
+            <Collapsible open={beneficiosOpen} onOpenChange={setBeneficiosOpen}>
+              <CollapsibleContent className="animate-fade-in">
+                <BeneficioBenefitTypeCards data={beneficioBenefitTypeData} total={beneficioBenefitTypeData.reduce((sum, item) => sum + item.count, 0)} />
+              </CollapsibleContent>
+            </Collapsible>
+          )}
         </div>
 
         {/* Charts Grid */}

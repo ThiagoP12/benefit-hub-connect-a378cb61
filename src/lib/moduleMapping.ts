@@ -35,3 +35,27 @@ export function getBenefitTypesFromModules(modules: string[]): string[] {
   });
   return [...new Set(benefitTypes)]; // Remove duplicates
 }
+
+// Função helper para obter módulos a partir dos benefit_types
+export function getModulesFromBenefitTypes(benefitTypes: string[]): string[] {
+  const modules: string[] = [];
+  Object.entries(MODULE_MAPPING).forEach(([module, types]) => {
+    if (types.some(type => benefitTypes.includes(type))) {
+      modules.push(module);
+    }
+  });
+  return [...new Set(modules)];
+}
+
+// Verifica se o usuário tem acesso a um módulo específico
+export function hasModuleAccess(
+  userModules: string[], 
+  moduleKey: string, 
+  userRole: string | null
+): boolean {
+  // Admin e Colaborador veem tudo
+  if (userRole === 'admin' || userRole === 'colaborador') return true;
+  
+  // Gestor/Agente DP precisam de permissão específica
+  return userModules.includes(moduleKey);
+}
