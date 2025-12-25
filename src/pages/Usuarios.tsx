@@ -17,6 +17,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Plus, Pencil, Trash2, Search, UserCog, Shield, Users, UserCheck, Filter } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -27,6 +33,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { UserFormDialog } from '@/components/usuarios/UserFormDialog';
 import { DeleteUserDialog } from '@/components/usuarios/DeleteUserDialog';
 import { PaginationControls } from '@/components/ui/pagination-controls';
+import { MODULE_OPTIONS } from '@/lib/moduleMapping';
 
 interface UserWithRole {
   id: string;
@@ -34,6 +41,7 @@ interface UserWithRole {
   email: string;
   full_name: string;
   role: 'admin' | 'gestor' | 'agente_dp';
+  modules: string[];
 }
 
 type SystemRole = 'admin' | 'gestor' | 'agente_dp';
@@ -54,6 +62,17 @@ const roleIcons: Record<SystemRole, typeof Shield> = {
   admin: Shield,
   gestor: Users,
   agente_dp: UserCheck,
+};
+
+// Helper to get module label
+const getModuleLabel = (moduleValue: string): string => {
+  const module = MODULE_OPTIONS.find(m => m.value === moduleValue);
+  return module ? `${module.icon} ${module.label}` : moduleValue;
+};
+
+const getModuleIcon = (moduleValue: string): string => {
+  const module = MODULE_OPTIONS.find(m => m.value === moduleValue);
+  return module?.icon || '📌';
 };
 
 export default function Usuarios() {
@@ -92,6 +111,8 @@ export default function Usuarios() {
       }
 
       const userIds = rolesData.map(r => r.user_id);
+      
+      // Fetch profiles
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('user_id, full_name, email')
@@ -102,7 +123,21 @@ export default function Usuarios() {
         return;
       }
 
+      // Fetch module permissions for all users
+      const { data: permissionsData } = await supabase
+        .from('user_module_permissions')
+        .select('user_id, module')
+        .in('user_id', userIds);
+
       const profilesMap = new Map(profilesData?.map(p => [p.user_id, p]) || []);
+      
+      // Group permissions by user_id
+      const permissionsMap = new Map<string, string[]>();
+      permissionsData?.forEach(p => {
+        const existing = permissionsMap.get(p.user_id) || [];
+        existing.push(p.module);
+        permissionsMap.set(p.user_id, existing);
+      });
 
       const usersWithRoles: UserWithRole[] = rolesData.map(role => ({
         id: role.id,
@@ -110,6 +145,7 @@ export default function Usuarios() {
         email: profilesMap.get(role.user_id)?.email || '',
         full_name: profilesMap.get(role.user_id)?.full_name || 'N/A',
         role: role.role as SystemRole,
+        modules: permissionsMap.get(role.user_id) || [],
       }));
 
       setUsers(usersWithRoles);
@@ -308,6 +344,7 @@ export default function Usuarios() {
                 <TableHead className="font-semibold">Usuário</TableHead>
                 <TableHead className="font-semibold hidden sm:table-cell">Email</TableHead>
                 <TableHead className="font-semibold">Função</TableHead>
+                <TableHead className="font-semibold hidden lg:table-cell">Módulos</TableHead>
                 <TableHead className="text-right font-semibold">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -323,12 +360,13 @@ export default function Usuarios() {
                     </TableCell>
                     <TableCell className="hidden sm:table-cell"><Skeleton className="h-4 w-40" /></TableCell>
                     <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+                    <TableCell className="hidden lg:table-cell"><Skeleton className="h-6 w-32" /></TableCell>
                     <TableCell><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
                   </TableRow>
                 ))
               ) : filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-12">
+                  <TableCell colSpan={5} className="text-center py-12">
                     <div className="flex flex-col items-center gap-2">
                       <UserCog className="h-10 w-10 text-muted-foreground/50" />
                       <p className="text-muted-foreground">Nenhum usuário encontrado</p>
@@ -365,6 +403,40 @@ export default function Usuarios() {
                           <span className="hidden sm:inline">{roleLabels[user.role]}</span>
                           <span className="sm:hidden">{user.role === 'admin' ? 'Admin' : user.role === 'gestor' ? 'Gestor' : 'Agente'}</span>
                         </Badge>
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        {user.role === 'admin' ? (
+                          <span className="text-sm text-primary font-medium flex items-center gap-1">
+                            <Shield className="h-3 w-3" />
+                            Todos os módulos
+                          </span>
+                        ) : user.modules.length > 0 ? (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="flex items-center gap-1 cursor-default">
+                                  <span className="text-sm">
+                                    {user.modules.slice(0, 3).map(m => getModuleIcon(m)).join(' ')}
+                                  </span>
+                                  {user.modules.length > 3 && (
+                                    <Badge variant="secondary" className="text-xs px-1.5">
+                                      +{user.modules.length - 3}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom" className="max-w-xs">
+                                <div className="space-y-1">
+                                  {user.modules.map(m => (
+                                    <div key={m} className="text-sm">{getModuleLabel(m)}</div>
+                                  ))}
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">Nenhum</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">

@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { benefitTypeLabels, statusLabels, BenefitStatus, BenefitType, ConvenioBenefitType } from '@/types/benefits';
+import { useAuth } from '@/contexts/AuthContext';
+import { getBenefitTypesFromModules } from '@/lib/moduleMapping';
 import { BenefitIcon } from '@/components/ui/benefit-icon';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Input } from '@/components/ui/input';
@@ -108,6 +110,7 @@ const isRequestPaused = (createdAt: string, cutoffDay: number): boolean => {
 const ITEMS_PER_PAGE = 10;
 
 export default function Solicitacoes() {
+  const { user, userRole } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [requests, setRequests] = useState<BenefitRequest[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
@@ -128,12 +131,47 @@ export default function Solicitacoes() {
   const [cutoffDay, setCutoffDay] = useState(25);
   const [isBlockPeriod, setIsBlockPeriod] = useState(false);
 
+  // Module permissions state
+  const [allowedBenefitTypes, setAllowedBenefitTypes] = useState<string[]>([]);
+
   useEffect(() => {
+    fetchModulePermissions();
     fetchRequests();
     fetchUnits();
     fetchSlaConfigs();
     fetchCutoffDay();
   }, []);
+
+  // Fetch user's module permissions
+  const fetchModulePermissions = async () => {
+    if (!user?.id) return;
+    
+    // Admin has access to all
+    if (userRole === 'admin') {
+      setAllowedBenefitTypes([]);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('user_module_permissions')
+        .select('module')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        const modules = data.map(d => d.module);
+        const benefitTypes = getBenefitTypesFromModules(modules);
+        setAllowedBenefitTypes(benefitTypes);
+      } else {
+        // No permissions = no access (except to own requests for colaborador)
+        setAllowedBenefitTypes([]);
+      }
+    } catch (err) {
+      console.error('Error fetching module permissions:', err);
+    }
+  };
 
   // Check block period
   useEffect(() => {
@@ -295,7 +333,14 @@ export default function Solicitacoes() {
       matchesDate = isWithinInterval(requestDate, { start: from, end: to });
     }
 
-    return matchesSearch && matchesStatus && matchesType && matchesUnit && matchesDate;
+    // Module permissions filter (skip for admin, they see all)
+    let matchesModulePermission = true;
+    if (userRole !== 'admin' && userRole !== 'colaborador' && allowedBenefitTypes.length > 0) {
+      matchesModulePermission = allowedBenefitTypes.includes(request.benefit_type);
+    }
+    // Colaborador only sees their own requests (already filtered by RLS)
+
+    return matchesSearch && matchesStatus && matchesType && matchesUnit && matchesDate && matchesModulePermission;
   });
 
   const totalPages = Math.ceil(filteredRequests.length / ITEMS_PER_PAGE);
