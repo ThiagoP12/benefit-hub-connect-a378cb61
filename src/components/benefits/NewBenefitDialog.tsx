@@ -120,7 +120,7 @@ export function NewBenefitDialog({ onSuccess }: { onSuccess?: () => void }) {
       return;
     }
 
-    toast.success(`Benefício criado com sucesso!`, {
+    toast.success(`Solicitação criada com sucesso!`, {
       description: `Protocolo: ${protocol}`,
     });
 
@@ -140,9 +140,9 @@ export function NewBenefitDialog({ onSuccess }: { onSuccess?: () => void }) {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Nova Solicitação de Benefício</DialogTitle>
+          <DialogTitle>Nova Solicitação RH/DP</DialogTitle>
           <DialogDescription>
-            Cadastre uma nova solicitação de benefício para um colaborador
+            Cadastre uma nova solicitação para um colaborador
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -177,7 +177,7 @@ export function NewBenefitDialog({ onSuccess }: { onSuccess?: () => void }) {
               name="benefitType"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tipo de Benefício</FormLabel>
+                  <FormLabel>Tipo de Solicitação</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>

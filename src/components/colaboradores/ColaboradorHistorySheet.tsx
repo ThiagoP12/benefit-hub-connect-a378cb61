@@ -30,7 +30,6 @@ const statusLabelsMap: Record<BenefitStatus, string> = {
   em_analise: 'Em Análise',
   aprovada: 'Aprovada',
   recusada: 'Recusada',
-  concluida: 'Concluída',
 };
 
 const statusFilterOptions: { value: string; label: string }[] = [
@@ -77,7 +76,7 @@ export function ColaboradorHistorySheet({
     return requests.filter((req) => {
       let matchesStatus = statusFilter === 'all';
       if (statusFilter === 'aprovada_concluida') {
-        matchesStatus = req.status === 'aprovada' || req.status === 'concluida';
+        matchesStatus = req.status === 'aprovada';
       } else if (statusFilter !== 'all') {
         matchesStatus = req.status === statusFilter;
       }
@@ -113,7 +112,9 @@ export function ColaboradorHistorySheet({
     if (error) {
       console.error('Error fetching requests:', error);
     } else {
-      setRequests(data || []);
+      // Filter out 'outros' type if it still exists in DB and cast to BenefitRequest[]
+      const filteredData = (data || []).filter(req => req.benefit_type !== 'outros') as unknown as BenefitRequest[];
+      setRequests(filteredData);
     }
     setLoading(false);
   };
@@ -313,7 +314,7 @@ export function ColaboradorHistorySheet({
                     )}
                   </div>
 
-                  {(request.status === 'aprovada' || request.status === 'concluida') &&
+                  {request.status === 'aprovada' &&
                    request.total_installments && request.total_installments > 1 && (
                     <div className="flex items-center justify-between gap-2 rounded-md bg-primary/5 border border-primary/20 p-3 mt-2">
                       <div className="flex items-center gap-2">
@@ -353,7 +354,7 @@ export function ColaboradorHistorySheet({
                     </div>
                   )}
 
-                  {(request.status === 'concluida' || request.status === 'aprovada') && request.pdf_url && (
+                  {request.status === 'aprovada' && request.pdf_url && (
                     <Button
                       variant="outline"
                       size="sm"
