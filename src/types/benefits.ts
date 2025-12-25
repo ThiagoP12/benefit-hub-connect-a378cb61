@@ -1,18 +1,11 @@
 // Tipos de convênio usados na UI
 export type ConvenioBenefitType = 'autoescola' | 'farmacia' | 'oficina' | 'vale_gas' | 'papelaria' | 'otica' | 'outros';
 
+// Tipos de benefícios DP/RH
+export type DpBenefitType = 'alteracao_ferias' | 'aviso_folga_falta' | 'atestado' | 'contracheque' | 'abono_horas' | 'alteracao_horario' | 'operacao_domingo' | 'relatorio_ponto';
+
 // Tipo completo alinhado com o enum do banco de dados Supabase
-export type BenefitType = 
-  | ConvenioBenefitType
-  // Tipos legados do banco (não usados na UI, mas necessários para compatibilidade)
-  | 'alteracao_ferias'
-  | 'aviso_folga_falta'
-  | 'atestado'
-  | 'contracheque'
-  | 'abono_horas'
-  | 'alteracao_horario'
-  | 'operacao_domingo'
-  | 'relatorio_ponto';
+export type BenefitType = ConvenioBenefitType | DpBenefitType;
 
 export type BenefitStatus = 'aberta' | 'em_analise' | 'aprovada' | 'recusada' | 'concluida';
 
@@ -88,6 +81,29 @@ export const benefitTypeEmojis: Record<ConvenioBenefitType, string> = {
   papelaria: '📚',
   otica: '👓',
   outros: '📦',
+};
+
+// Labels para benefícios DP
+export const dpBenefitTypeLabels: Record<DpBenefitType, string> = {
+  alteracao_ferias: 'Alteração de Férias',
+  aviso_folga_falta: 'Aviso Folga/Falta',
+  atestado: 'Atestado',
+  contracheque: 'Contracheque',
+  abono_horas: 'Abono de Horas',
+  alteracao_horario: 'Alteração de Horário',
+  operacao_domingo: 'Operação Domingo',
+  relatorio_ponto: 'Relatório de Ponto',
+};
+
+export const dpBenefitTypeEmojis: Record<DpBenefitType, string> = {
+  alteracao_ferias: '🏖️',
+  aviso_folga_falta: '📋',
+  atestado: '🏥',
+  contracheque: '💰',
+  abono_horas: '⏰',
+  alteracao_horario: '🕐',
+  operacao_domingo: '📅',
+  relatorio_ponto: '📊',
 };
 
 export const statusLabels: Record<BenefitStatus, string> = {
