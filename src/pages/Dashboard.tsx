@@ -22,7 +22,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { exportToCSV, exportToExcel, formatDateTimeForExport } from '@/lib/exportUtils';
 import { toast } from 'sonner';
 
-const filteredBenefitTypes = benefitTypes as BenefitType[];
+const filteredBenefitTypes = benefitTypes.filter(t => t !== 'outros') as BenefitType[];
 
 interface DashboardStats {
   total: number;
@@ -70,16 +70,15 @@ interface AlertRequest extends RequestData {
 
 type DateFilter = 'all' | '7days' | '30days' | '90days' | 'custom';
 
-// Colors matching benefit types (Tipos de Solicitação RH/DP)
+// Colors matching benefit types
 const BENEFIT_COLORS: Record<string, string> = {
-  alteracao_ferias: '#10B981',   // Emerald
-  aviso_folga_falta: '#F59E0B', // Amber
-  atestado: '#EF4444',           // Red
-  contracheque: '#3B82F6',       // Blue
-  abono_horas: '#8B5CF6',        // Violet
-  alteracao_horario: '#06B6D4',  // Cyan
-  operacao_domingo: '#F97316',   // Orange
-  relatorio_ponto: '#EC4899',    // Pink
+  autoescola: '#3B82F6',   // Blue
+  farmacia: '#10B981',     // Emerald
+  oficina: '#F97316',      // Orange
+  vale_gas: '#EF4444',     // Red
+  papelaria: '#8B5CF6',    // Violet
+  otica: '#06B6D4',        // Cyan
+  outros: '#6B7280',       // Gray
 };
 
 

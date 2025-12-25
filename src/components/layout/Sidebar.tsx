@@ -15,7 +15,6 @@ import {
   Sun,
   UserCog,
   ClipboardList,
-  Gift,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -68,12 +67,6 @@ const navigation: NavItem[] = [
     href: '/auditoria',
     icon: ClipboardList,
     allowedRoles: ['admin']
-  },
-  {
-    name: 'Benefícios',
-    href: '/beneficios',
-    icon: Gift,
-    allowedRoles: ['admin', 'gestor', 'agente_dp']
   },
   {
     name: 'WhatsApp',

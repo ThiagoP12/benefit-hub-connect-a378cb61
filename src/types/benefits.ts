@@ -1,15 +1,7 @@
-// Alinhado com os enums do banco de dados Supabase - Tipos de Solicitação RH/DP
-export type BenefitType = 
-  | 'alteracao_ferias' 
-  | 'aviso_folga_falta' 
-  | 'atestado' 
-  | 'contracheque'
-  | 'abono_horas'
-  | 'alteracao_horario'
-  | 'operacao_domingo'
-  | 'relatorio_ponto';
+// Alinhado com os enums do banco de dados Supabase
+export type BenefitType = 'autoescola' | 'farmacia' | 'oficina' | 'vale_gas' | 'papelaria' | 'otica' | 'outros';
 
-export type BenefitStatus = 'aberta' | 'em_analise' | 'aprovada' | 'recusada';
+export type BenefitStatus = 'aberta' | 'em_analise' | 'aprovada' | 'recusada' | 'concluida';
 
 export type UserRole = 'colaborador' | 'gestor' | 'admin';
 
@@ -47,8 +39,6 @@ export interface BenefitRequest {
   rejection_reason?: string;
   pdf_url?: string;
   pdf_file_name?: string;
-  attachment_url?: string;
-  attachment_file_name?: string;
   closing_message?: string;
   closed_by?: string;
   closed_at?: string;
@@ -68,25 +58,23 @@ export interface Log {
 }
 
 export const benefitTypeLabels: Record<BenefitType, string> = {
-  alteracao_ferias: 'Alteração de Férias',
-  aviso_folga_falta: 'Aviso de Folga/Falta',
-  atestado: 'Atestado',
-  contracheque: 'Contracheque',
-  abono_horas: 'Abono de Horas',
-  alteracao_horario: 'Alteração de Horário',
-  operacao_domingo: 'Operação no Domingo',
-  relatorio_ponto: 'Relatório de Ponto',
+  autoescola: 'Autoescola',
+  farmacia: 'Farmácia',
+  oficina: 'Oficina',
+  vale_gas: 'Vale Gás',
+  papelaria: 'Papelaria',
+  otica: 'Ótica',
+  outros: 'Outros',
 };
 
 export const benefitTypeEmojis: Record<BenefitType, string> = {
-  alteracao_ferias: '🏖️',
-  aviso_folga_falta: '📋',
-  atestado: '🏥',
-  contracheque: '💰',
-  abono_horas: '⏱️',
-  alteracao_horario: '🕐',
-  operacao_domingo: '📆',
-  relatorio_ponto: '📊',
+  autoescola: '🚗',
+  farmacia: '💊',
+  oficina: '🔧',
+  vale_gas: '⛽',
+  papelaria: '📚',
+  otica: '👓',
+  outros: '📦',
 };
 
 export const statusLabels: Record<BenefitStatus, string> = {
@@ -94,24 +82,23 @@ export const statusLabels: Record<BenefitStatus, string> = {
   em_analise: 'Em Análise',
   aprovada: 'Aprovado',
   recusada: 'Recusado',
+  concluida: 'Aprovado',
 };
 
-export const statusFilterLabels: Record<BenefitStatus, string> = {
+export const statusFilterLabels: Record<Exclude<BenefitStatus, 'concluida'>, string> = {
   aberta: 'Aberto',
   em_analise: 'Em Análise',
   aprovada: 'Aprovado',
   recusada: 'Reprovado',
 };
 
-export const benefitTypeFilterLabels: Record<BenefitType, string> = {
-  alteracao_ferias: 'Alteração de Férias',
-  aviso_folga_falta: 'Aviso de Folga/Falta',
-  atestado: 'Atestado',
-  contracheque: 'Contracheque',
-  abono_horas: 'Abono de Horas',
-  alteracao_horario: 'Alteração de Horário',
-  operacao_domingo: 'Operação no Domingo',
-  relatorio_ponto: 'Relatório de Ponto',
+export const benefitTypeFilterLabels: Record<Exclude<BenefitType, 'outros'>, string> = {
+  autoescola: 'Autoescola',
+  farmacia: 'Farmácia',
+  oficina: 'Oficina',
+  vale_gas: 'Vale Gás',
+  papelaria: 'Papelaria',
+  otica: 'Ótica',
 };
 
 export const roleLabels: Record<UserRole, string> = {

@@ -278,7 +278,7 @@ export function BenefitDetailsSheet({
   const isPending = request.status === "aberta" || request.status === "em_analise";
   const isApproved = status === "aprovada";
   const isRejected = status === "recusada";
-  const isClosed = request.status === "aprovada" || request.status === "recusada";
+  const isClosed = request.status === "concluida" || request.status === "recusada";
 
   const canNavigatePrev = currentIndex > 0;
   const canNavigateNext = currentIndex < totalItems - 1;
