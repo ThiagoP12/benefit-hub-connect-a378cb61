@@ -4,7 +4,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { format, startOfMonth, endOfMonth, subMonths, differenceInHours, parseISO, isWithinInterval, startOfDay, endOfDay, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { FileText, Clock, CheckCircle, FolderOpen, TrendingUp, Eye, Download, FileSpreadsheet, Calendar, Timer, LayoutDashboard, Building2, XCircle, AlertTriangle } from 'lucide-react';
+import { FileText, Clock, CheckCircle, FolderOpen, TrendingUp, Eye, Download, FileSpreadsheet, Calendar, Timer, LayoutDashboard, Building2, XCircle, AlertTriangle, Hash, User, Package, CircleDot, Settings } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { BenefitType, benefitTypeLabels, benefitTypeEmojis, statusLabels } from '@/types/benefits';
 import { benefitTypes } from '@/data/mockData';
@@ -616,13 +616,13 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          {/* Alert Board - SLA Warning */}
+          {/* Alert Board */}
           <Card className="border-2 border-warning/30 shadow-lg hover:shadow-xl transition-shadow">
             <CardHeader className="bg-gradient-to-r from-warning/10 to-transparent">
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <AlertTriangle className="h-5 w-5 text-warning" />
-                  Quadro de Avisos - SLA
+                  Quadro de Avisos
                 </CardTitle>
                 <span className="text-xs text-muted-foreground">
                   {alertRequests.length} protocolo(s) em alerta
@@ -687,7 +687,8 @@ export default function Dashboard() {
           <CardHeader className="bg-gradient-to-r from-info/5 to-transparent">
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
-                🕐 Chamados Recentes
+                <Clock className="h-5 w-5 text-info" />
+                Chamados Recentes
               </CardTitle>
               <Button variant="outline" size="sm" onClick={() => navigate('/solicitacoes')}>
                 Ver todos
@@ -699,13 +700,13 @@ export default function Dashboard() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground">📅 Data</th>
-                    <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground">🔢 Protocolo</th>
-                    <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground">👤 Colaborador</th>
-                    <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground">🏢 Unidade</th>
-                    <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground">📦 Tipo</th>
-                    <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground">📊 Status</th>
-                    <th className="text-right py-3 px-2 text-xs font-semibold text-muted-foreground">⚙️ Ações</th>
+                    <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground"><Calendar className="h-3.5 w-3.5 inline mr-1" />Data</th>
+                    <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground"><Hash className="h-3.5 w-3.5 inline mr-1" />Protocolo</th>
+                    <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground"><User className="h-3.5 w-3.5 inline mr-1" />Colaborador</th>
+                    <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground"><Building2 className="h-3.5 w-3.5 inline mr-1" />Unidade</th>
+                    <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground"><Package className="h-3.5 w-3.5 inline mr-1" />Tipo</th>
+                    <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground"><CircleDot className="h-3.5 w-3.5 inline mr-1" />Status</th>
+                    <th className="text-right py-3 px-2 text-xs font-semibold text-muted-foreground"><Settings className="h-3.5 w-3.5 inline mr-1" />Ações</th>
                   </tr>
                 </thead>
                 <tbody>

@@ -38,16 +38,16 @@ import {
   Phone,
   Building2,
   User,
-  Calendar,
   FileText,
   ExternalLink,
   MessageSquare,
-  Clock,
   AlertTriangle,
+  Clock,
 } from "lucide-react";
 import { benefitTypeLabels, type BenefitStatus } from "@/types/benefits";
 import { formatCpf, cn } from "@/lib/utils";
 import { getWhatsAppLink, getRelativeTime } from "@/lib/formatters";
+import { RequestMessagesChat } from "./RequestMessagesChat";
 
 interface BenefitDetailsSheetProps {
   open: boolean;
@@ -105,8 +105,8 @@ export function BenefitDetailsSheet({
   const [approvedValue, setApprovedValue] = useState("");
   const [totalInstallments, setTotalInstallments] = useState("1");
   const [activeTab, setActiveTab] = useState("details");
-  const [directMessage, setDirectMessage] = useState("");
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
+  const [hasNewMessages, setHasNewMessages] = useState(false);
 
   useEffect(() => {
     setStatus(request.status);
@@ -117,8 +117,8 @@ export function BenefitDetailsSheet({
     setApprovedValue("");
     setTotalInstallments("1");
     setActiveTab("details");
-    setDirectMessage("");
     setShowBlockConfirm(false);
+    setHasNewMessages(false);
   }, [request.id, request.status, request.rejection_reason, request.closing_message, request.pdf_url]);
 
   const handleApprove = () => {
@@ -270,52 +270,6 @@ export function BenefitDetailsSheet({
     } catch (error: any) {
       console.error("Erro ao enviar:", error);
       toast.error("Erro ao processar solicitação: " + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSendDirectMessage = async () => {
-    if (!directMessage.trim()) {
-      toast.error("Digite uma mensagem para enviar");
-      return;
-    }
-
-    if (!request.profiles?.phone) {
-      toast.error("Colaborador não possui telefone cadastrado");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      // Send message via webhook
-      const webhookData = {
-        protocolo: request.protocol,
-        nome_colaborador: request.profiles?.full_name || "N/A",
-        telefone_whatsapp: request.profiles?.phone || "",
-        mensagem: directMessage,
-        tipo: "mensagem_direta",
-        account_id: request.account_id || null,
-        conversation_id: request.conversation_id || null,
-      };
-
-      const response = await fetch("https://n8n.revalle.com.br/webhook/aprovacao", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(webhookData),
-      });
-
-      if (!response.ok) {
-        throw new Error("Erro ao enviar mensagem");
-      }
-
-      toast.success("Mensagem enviada com sucesso!");
-      setDirectMessage("");
-    } catch (error: any) {
-      console.error("Erro ao enviar mensagem:", error);
-      toast.error("Erro ao enviar mensagem: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -656,108 +610,17 @@ export function BenefitDetailsSheet({
             </TabsContent>
 
             <TabsContent value="communication" className="m-0">
-              <div className="p-6 space-y-6">
-                {/* Histórico de comunicação */}
-                <div className="space-y-3">
-                  <h4 className="text-sm font-medium text-muted-foreground">Histórico</h4>
-                  
-                  <div className="space-y-3">
-                    {/* Mensagem de abertura */}
-                    <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        {format(new Date(request.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                      </div>
-                      <p className="text-sm">
-                        <span className="font-medium">{request.profiles?.full_name}</span> abriu a solicitação
-                      </p>
-                      {request.details && (
-                        <p className="text-sm text-muted-foreground italic">"{request.details}"</p>
-                      )}
-                    </div>
-
-                    {/* Mensagem de análise (se houver) */}
-                    {request.reviewed_at && (
-                      <div className="bg-primary/10 rounded-lg p-4 space-y-2">
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          {format(new Date(request.reviewed_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                        </div>
-                        <p className="text-sm">
-                          <span className="font-medium">{request.reviewer_name || "Gestor"}</span> assumiu a análise
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Mensagem de fechamento (se houver) */}
-                    {request.closing_message && (
-                      <div className={cn(
-                        "rounded-lg p-4 space-y-2",
-                        request.status === 'aprovada' ? "bg-green-500/10" : "bg-destructive/10"
-                      )}>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Clock className="h-3 w-3" />
-                          Encerramento
-                        </div>
-                        <p className="text-sm">{request.closing_message}</p>
-                      </div>
-                    )}
-
-                    {!request.closing_message && !request.reviewed_at && (
-                      <p className="text-sm text-muted-foreground text-center py-4">
-                        Nenhuma interação registrada ainda
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Enviar mensagem direta */}
-                <div className="space-y-3">
-                  <h4 className="text-sm font-medium text-muted-foreground">Enviar Mensagem</h4>
-                  
-                  <div className="space-y-3">
-                    <Textarea
-                      value={directMessage}
-                      onChange={(e) => setDirectMessage(e.target.value)}
-                      placeholder="Digite uma mensagem para enviar ao colaborador via WhatsApp..."
-                      rows={4}
-                    />
-                    
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={handleSendDirectMessage}
-                        disabled={loading || !directMessage.trim() || !request.profiles?.phone}
-                        className="flex-1"
-                      >
-                        <Send className="w-4 h-4 mr-2" />
-                        {loading ? "Enviando..." : "Enviar via WhatsApp"}
-                      </Button>
-                      
-                      {request.profiles?.phone && (
-                        <Button
-                          variant="outline"
-                          asChild
-                        >
-                          <a
-                            href={getWhatsAppLink(request.profiles.phone, directMessage)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                          </a>
-                        </Button>
-                      )}
-                    </div>
-
-                    {!request.profiles?.phone && (
-                      <p className="text-xs text-destructive">
-                        ⚠️ Colaborador não possui telefone cadastrado
-                      </p>
-                    )}
-                  </div>
-                </div>
+              <div className="p-6">
+                <RequestMessagesChat
+                  requestId={request.id}
+                  protocol={request.protocol}
+                  collaboratorName={request.profiles?.full_name || "Colaborador"}
+                  collaboratorPhone={request.profiles?.phone || null}
+                  accountId={request.account_id}
+                  conversationId={request.conversation_id}
+                  status={request.status}
+                  onNewMessage={() => setHasNewMessages(true)}
+                />
               </div>
             </TabsContent>
           </ScrollArea>
