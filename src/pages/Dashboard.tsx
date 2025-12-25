@@ -6,7 +6,8 @@ import { format, startOfMonth, endOfMonth, subMonths, differenceInHours, parseIS
 import { ptBR } from 'date-fns/locale';
 import { FileText, Clock, CheckCircle, FolderOpen, TrendingUp, Eye, Download, FileSpreadsheet, Calendar, Timer, LayoutDashboard, Building2, XCircle, AlertTriangle, Hash, User, Package, CircleDot, Settings } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { BenefitType, benefitTypeLabels, benefitTypeEmojis, statusLabels } from '@/types/benefits';
+import { BenefitType, benefitTypeLabels, statusLabels } from '@/types/benefits';
+import { BenefitIcon } from '@/components/ui/benefit-icon';
 import { benefitTypes } from '@/data/mockData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -345,9 +346,10 @@ export default function Dashboard() {
   }, [allRequests, dateFilter, customDateRange]);
 
   const pieData = benefitTypeData.map((item, index) => ({
-    name: `${benefitTypeEmojis[item.type]} ${benefitTypeLabels[item.type]}`,
+    name: benefitTypeLabels[item.type],
     value: item.count,
     color: COLORS[index % COLORS.length],
+    type: item.type,
   }));
 
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -724,10 +726,10 @@ export default function Dashboard() {
                       <td className="py-3 px-2 text-sm">{request.profile?.full_name || 'N/A'}</td>
                       <td className="py-3 px-2 text-sm text-muted-foreground">{request.profile?.unit?.name || '-'}</td>
                       <td className="py-3 px-2">
-                        <span className="inline-flex items-center gap-2 text-sm">
-                          <span className="text-xl">{benefitTypeEmojis[request.benefit_type as BenefitType]}</span>
+                        <div className="inline-flex items-center gap-2 text-sm">
+                          <BenefitIcon type={request.benefit_type as BenefitType} size="lg" />
                           <span className="hidden md:inline">{benefitTypeLabels[request.benefit_type as BenefitType]}</span>
-                        </span>
+                        </div>
                       </td>
                       <td className="py-3 px-2">
                         <StatusBadge 
