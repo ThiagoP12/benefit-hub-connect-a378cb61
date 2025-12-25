@@ -107,7 +107,7 @@ export default function Solicitacoes() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('status') || 'all');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [typeFilter, setTypeFilter] = useState<string>(searchParams.get('benefit_type') || 'all');
   const [unitFilter, setUnitFilter] = useState<string>('all');
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [currentPage, setCurrentPage] = useState(1);
@@ -150,11 +150,22 @@ export default function Solicitacoes() {
     }
   }, [searchParams, requests]);
 
-  // Sync URL params with status filter
+  // Sync URL params with filters
   useEffect(() => {
     const urlStatus = searchParams.get('status');
+    const urlBenefitType = searchParams.get('benefit_type');
+    
     if (urlStatus && urlStatus !== statusFilter) {
       setStatusFilter(urlStatus);
+    }
+    if (urlBenefitType && urlBenefitType !== typeFilter) {
+      setTypeFilter(urlBenefitType);
+    }
+    
+    // Clear URL params after applying
+    if (urlStatus || urlBenefitType) {
+      const newParams = new URLSearchParams();
+      setSearchParams(newParams);
     }
   }, [searchParams]);
 

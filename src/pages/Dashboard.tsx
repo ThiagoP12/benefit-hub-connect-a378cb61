@@ -8,7 +8,7 @@ import { format, startOfMonth, endOfMonth, subMonths, differenceInHours, isWithi
 import { ptBR } from 'date-fns/locale';
 import { FileText, Clock, CheckCircle, FolderOpen, TrendingUp, Eye, Download, FileSpreadsheet, Calendar, Timer, LayoutDashboard, Building2, XCircle, AlertTriangle, Hash, User, Package, CircleDot, Settings, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { BenefitType, benefitTypeLabels, statusLabels } from '@/types/benefits';
+import { BenefitType, benefitTypeLabels, benefitTypeEmojis, statusLabels } from '@/types/benefits';
 import { BenefitIcon } from '@/components/ui/benefit-icon';
 import { benefitTypes } from '@/data/mockData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -354,7 +354,7 @@ export default function Dashboard() {
   const pieData = benefitTypeData
     .filter(item => item.count > 0)
     .map((item) => ({
-      name: benefitTypeLabels[item.type],
+      name: `${benefitTypeEmojis[item.type]} ${benefitTypeLabels[item.type]}`,
       value: item.count,
       color: BENEFIT_COLORS[item.type] || BENEFIT_COLORS.outros,
       type: item.type,
