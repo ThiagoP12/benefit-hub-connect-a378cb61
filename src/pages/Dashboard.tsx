@@ -2,9 +2,12 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { StatCard } from '@/components/dashboard/StatCard';
-import { format, startOfMonth, endOfMonth, subMonths, differenceInHours, parseISO, isWithinInterval, startOfDay, endOfDay, subDays } from 'date-fns';
+import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
+import { HeroStats } from '@/components/dashboard/HeroStats';
+import { BenefitTypeCards } from '@/components/dashboard/BenefitTypeCards';
+import { format, startOfMonth, endOfMonth, subMonths, differenceInHours, isWithinInterval, startOfDay, endOfDay, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { FileText, Clock, CheckCircle, FolderOpen, TrendingUp, Eye, Download, FileSpreadsheet, Calendar, Timer, LayoutDashboard, Building2, XCircle, AlertTriangle, Hash, User, Package, CircleDot, Settings } from 'lucide-react';
+import { FileText, Clock, CheckCircle, FolderOpen, TrendingUp, Eye, Download, FileSpreadsheet, Calendar, Timer, LayoutDashboard, Building2, XCircle, AlertTriangle, Hash, User, Package, CircleDot, Settings, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { BenefitType, benefitTypeLabels, statusLabels } from '@/types/benefits';
 import { BenefitIcon } from '@/components/ui/benefit-icon';
@@ -80,6 +83,7 @@ const COLORS = [
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>({ 
     total: 0, today: 0, abertos: 0, emAnalise: 0, aprovados: 0, reprovados: 0,
     approvalRate: 0, avgResponseTime: 0
@@ -92,6 +96,7 @@ export default function Dashboard() {
   const [allRequestsForExport, setAllRequestsForExport] = useState<any[]>([]);
   const [units, setUnits] = useState<{ id: string; name: string }[]>([]);
   const [unitFilter, setUnitFilter] = useState<string>('all');
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   
   // Date filter state
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
@@ -119,7 +124,6 @@ export default function Dashboard() {
       setSlaConfigs(data || []);
     } catch (err) {
       console.error('Error fetching SLA configs:', err);
-      // Default SLA values
       setSlaConfigs([{ benefit_type: 'default', green_hours: 2, yellow_hours: 6 }]);
     }
   };
@@ -159,6 +163,7 @@ export default function Dashboard() {
   };
 
   const fetchDashboardData = async () => {
+    setLoading(true);
     try {
       const { data, error } = await supabase
         .from('benefit_requests')
@@ -173,7 +178,6 @@ export default function Dashboard() {
       const rawData = data || [];
       setAllRequests(rawData);
       
-      // First fetch profiles to know unit_id for filtering
       const allUserIds = [...new Set(rawData.map(r => r.user_id))];
       
       const { data: allProfilesData } = await supabase
@@ -183,10 +187,8 @@ export default function Dashboard() {
 
       const profilesMap = new Map(allProfilesData?.map(p => [p.user_id, p]) || []);
       
-      // Apply date filter first
       let filteredData = filterByDate(rawData);
       
-      // Apply unit filter
       if (unitFilter !== 'all') {
         filteredData = filteredData.filter(req => {
           const profile = profilesMap.get(req.user_id);
@@ -204,11 +206,9 @@ export default function Dashboard() {
       const aprovados = filteredData.filter(r => r.status === 'aprovada').length;
       const reprovados = filteredData.filter(r => r.status === 'recusada').length;
 
-      // Calculate approval rate
       const closedRequests = aprovados + reprovados;
       const approvalRate = closedRequests > 0 ? Math.round((aprovados / closedRequests) * 100) : 0;
 
-      // Calculate average response time (from created to reviewed/closed)
       const requestsWithResponse = filteredData.filter(r => r.reviewed_at || r.closed_at);
       let avgResponseTime = 0;
       if (requestsWithResponse.length > 0) {
@@ -228,7 +228,6 @@ export default function Dashboard() {
       }));
       setBenefitTypeData(typeData);
 
-      // Prepare data for export
       const exportData = filteredData.map(req => {
         const profile = profilesMap.get(req.user_id);
         return {
@@ -239,7 +238,6 @@ export default function Dashboard() {
       });
       setAllRequestsForExport(exportData);
 
-      // Fetch recent requests with profiles
       const recentData = filteredData.slice(0, 8);
       const recentWithProfiles = recentData.map(req => ({
         ...req,
@@ -248,7 +246,6 @@ export default function Dashboard() {
       
       setRecentRequests(recentWithProfiles);
 
-      // Calculate alert requests (yellow and red SLA)
       const getSlaForBenefitType = (benefitType: string) => {
         const config = slaConfigs.find(c => c.benefit_type === benefitType);
         return config || { green_hours: 2, yellow_hours: 6 };
@@ -282,9 +279,17 @@ export default function Dashboard() {
         .slice(0, 10) as AlertRequest[];
       
       setAlertRequests(alertReqs);
+      setLastUpdated(new Date());
     } catch (err) {
       console.error('Error in fetchDashboardData:', err);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleRefresh = () => {
+    fetchDashboardData();
+    toast.success('Dados atualizados!');
   };
 
   const getExportColumns = () => [
@@ -355,10 +360,11 @@ export default function Dashboard() {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
-          <p className="font-semibold text-foreground mb-1">{label}</p>
+        <div className="bg-card border-2 border-border rounded-xl p-4 shadow-xl backdrop-blur-sm">
+          <p className="font-bold text-foreground mb-2">{label}</p>
           {payload.map((entry: any, index: number) => (
-            <p key={index} className="text-sm" style={{ color: entry.color }}>
+            <p key={index} className="text-sm flex items-center gap-2" style={{ color: entry.color }}>
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
               {entry.name}: <span className="font-bold">{entry.value}</span>
             </p>
           ))}
@@ -368,25 +374,19 @@ export default function Dashboard() {
     return null;
   };
 
-  const getDateFilterLabel = () => {
-    switch (dateFilter) {
-      case '7days': return 'Últimos 7 dias';
-      case '30days': return 'Últimos 30 dias';
-      case '90days': return 'Últimos 90 dias';
-      case 'custom': 
-        if (customDateRange.from && customDateRange.to) {
-          return `${format(customDateRange.from, 'dd/MM')} - ${format(customDateRange.to, 'dd/MM')}`;
-        }
-        return 'Período personalizado';
-      default: return 'Todo período';
-    }
-  };
+  if (loading) {
+    return (
+      <MainLayout>
+        <DashboardSkeleton />
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout>
       <div className="space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 animate-fade-in">
           <div>
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground flex items-center gap-2">
               <LayoutDashboard className="h-6 w-6 sm:h-7 sm:w-7" />
@@ -453,12 +453,17 @@ export default function Dashboard() {
               </Popover>
             )}
 
+            {/* Refresh Button */}
+            <Button variant="outline" size="icon" onClick={handleRefresh} className="shrink-0">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+
             {/* Export Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="gap-2">
                   <Download className="h-4 w-4" />
-                  Exportar
+                  <span className="hidden sm:inline">Exportar</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -475,19 +480,29 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Stats Grid - 7 KPI Cards */}
+        {/* Hero Stats Section */}
+        <HeroStats
+          approvalRate={stats.approvalRate}
+          avgResponseTime={stats.avgResponseTime}
+          totalRequests={stats.total}
+          todayRequests={stats.today}
+        />
+
+        {/* Stats Grid - 7 KPI Cards with staggered animation */}
         <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4 sm:grid-cols-4 lg:grid-cols-7">
           <StatCard
             title="Total"
             value={stats.total}
             icon={FileText}
             onClick={() => navigate('/solicitacoes')}
+            animationDelay={0.05}
           />
           <StatCard
             title="Hoje"
             value={stats.today}
             icon={TrendingUp}
             onClick={() => navigate('/solicitacoes')}
+            animationDelay={0.1}
           />
           <StatCard
             title="Aberto"
@@ -495,6 +510,7 @@ export default function Dashboard() {
             icon={FolderOpen}
             variant="info"
             onClick={() => navigate('/solicitacoes?status=aberta')}
+            animationDelay={0.15}
           />
           <StatCard
             title="Análise"
@@ -502,6 +518,7 @@ export default function Dashboard() {
             icon={Clock}
             variant="warning"
             onClick={() => navigate('/solicitacoes?status=em_analise')}
+            animationDelay={0.2}
           />
           <StatCard
             title="Aprovadas"
@@ -509,6 +526,7 @@ export default function Dashboard() {
             icon={CheckCircle}
             variant="success"
             onClick={() => navigate('/solicitacoes?status=aprovada')}
+            animationDelay={0.25}
           />
           <StatCard
             title="Reprovadas"
@@ -516,18 +534,23 @@ export default function Dashboard() {
             icon={XCircle}
             variant="destructive"
             onClick={() => navigate('/solicitacoes?status=recusada')}
+            animationDelay={0.3}
           />
           <StatCard
             title="Tempo Méd."
             value={`${stats.avgResponseTime}h`}
             icon={Timer}
             variant="info"
+            animationDelay={0.35}
           />
         </div>
 
+        {/* Benefit Type Cards */}
+        <BenefitTypeCards data={benefitTypeData} total={stats.total} />
+
         {/* Charts Grid */}
         <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
-          <Card className="border-2 border-primary/10 shadow-lg hover:shadow-xl transition-shadow">
+          <Card className="border-2 border-primary/10 shadow-lg hover:shadow-xl transition-all duration-300 animate-fade-in" style={{ animationDelay: '0.4s' }}>
             <CardHeader className="bg-gradient-to-r from-primary/5 to-transparent">
               <CardTitle className="flex items-center gap-2">
                 📈 Solicitações por Mês
@@ -565,7 +588,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border-2 border-accent/10 shadow-lg hover:shadow-xl transition-shadow">
+          <Card className="border-2 border-accent/10 shadow-lg hover:shadow-xl transition-all duration-300 animate-fade-in" style={{ animationDelay: '0.45s' }}>
             <CardHeader className="bg-gradient-to-r from-accent/5 to-transparent">
               <CardTitle className="flex items-center gap-2">
                 🎯 Solicitações por Tipo
@@ -619,23 +642,25 @@ export default function Dashboard() {
           </Card>
 
           {/* Alert Board */}
-          <Card className="border-2 border-warning/30 shadow-lg hover:shadow-xl transition-shadow">
+          <Card className="border-2 border-warning/30 shadow-lg hover:shadow-xl transition-all duration-300 animate-fade-in" style={{ animationDelay: '0.5s' }}>
             <CardHeader className="bg-gradient-to-r from-warning/10 to-transparent">
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-warning" />
+                  <AlertTriangle className="h-5 w-5 text-warning animate-pulse" />
                   Quadro de Avisos
                 </CardTitle>
-                <span className="text-xs text-muted-foreground">
-                  {alertRequests.length} protocolo(s) em alerta
+                <span className="text-xs text-muted-foreground bg-warning/10 px-2 py-1 rounded-full">
+                  {alertRequests.length} em alerta
                 </span>
               </div>
             </CardHeader>
             <CardContent>
               {alertRequests.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                  <CheckCircle className="h-12 w-12 text-success mb-2" />
-                  <p className="font-medium">Nenhum protocolo em atraso</p>
+                  <div className="p-4 rounded-full bg-success/10 mb-3">
+                    <CheckCircle className="h-12 w-12 text-success" />
+                  </div>
+                  <p className="font-medium text-foreground">Nenhum protocolo em atraso</p>
                   <p className="text-sm">Todos os protocolos estão dentro do SLA</p>
                 </div>
               ) : (
@@ -643,22 +668,22 @@ export default function Dashboard() {
                   {alertRequests.map((req, index) => (
                     <div 
                       key={req.id}
-                      className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-muted/50 transition-all animate-fade-in ${
+                      className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer hover:scale-[1.01] transition-all duration-200 animate-fade-in ${
                         req.slaStatus === 'red' 
-                          ? 'border-destructive/50 bg-destructive/5 animate-pulse' 
+                          ? 'border-destructive/50 bg-destructive/5' 
                           : 'border-warning/50 bg-warning/5'
                       }`}
-                      style={{ animationDelay: `${index * 0.05}s` }}
+                      style={{ animationDelay: `${index * 0.05 + 0.5}s` }}
                       onClick={() => navigate(`/solicitacoes?protocol=${req.protocol}`)}
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-full ${
-                          req.slaStatus === 'red' ? 'bg-destructive/20 animate-pulse' : 'bg-warning/20'
+                        <div className={`p-2.5 rounded-xl ${
+                          req.slaStatus === 'red' ? 'bg-destructive/20' : 'bg-warning/20'
                         }`}>
                           {req.slaStatus === 'red' ? (
-                            <XCircle className="h-4 w-4 text-destructive" />
+                            <XCircle className="h-5 w-5 text-destructive animate-pulse" />
                           ) : (
-                            <AlertTriangle className="h-4 w-4 text-warning" />
+                            <AlertTriangle className="h-5 w-5 text-warning" />
                           )}
                         </div>
                         <div>
@@ -667,12 +692,14 @@ export default function Dashboard() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className={`font-bold text-sm ${
-                          req.slaStatus === 'red' ? 'text-destructive animate-pulse' : 'text-warning'
+                        <p className={`font-bold text-lg ${
+                          req.slaStatus === 'red' ? 'text-destructive' : 'text-warning'
                         }`}>
                           {req.hoursOpen}h
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className={`text-[10px] font-medium uppercase tracking-wide ${
+                          req.slaStatus === 'red' ? 'text-destructive' : 'text-warning'
+                        }`}>
                           {req.slaStatus === 'red' ? 'Vencido' : 'Atenção'}
                         </p>
                       </div>
@@ -685,14 +712,14 @@ export default function Dashboard() {
         </div>
 
         {/* Recent Requests */}
-        <Card className="border-2 border-info/10 shadow-lg">
+        <Card className="border-2 border-info/10 shadow-lg animate-fade-in" style={{ animationDelay: '0.55s' }}>
           <CardHeader className="bg-gradient-to-r from-info/5 to-transparent">
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Clock className="h-5 w-5 text-info" />
                 Chamados Recentes
               </CardTitle>
-              <Button variant="outline" size="sm" onClick={() => navigate('/solicitacoes')}>
+              <Button variant="outline" size="sm" onClick={() => navigate('/solicitacoes')} className="hover:bg-info/10">
                 Ver todos
               </Button>
             </div>
@@ -705,7 +732,7 @@ export default function Dashboard() {
                     <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground"><Calendar className="h-3.5 w-3.5 inline mr-1" />Data</th>
                     <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground"><Hash className="h-3.5 w-3.5 inline mr-1" />Protocolo</th>
                     <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground"><User className="h-3.5 w-3.5 inline mr-1" />Colaborador</th>
-                    <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground"><Building2 className="h-3.5 w-3.5 inline mr-1" />Unidade</th>
+                    <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground hidden md:table-cell"><Building2 className="h-3.5 w-3.5 inline mr-1" />Unidade</th>
                     <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground"><Package className="h-3.5 w-3.5 inline mr-1" />Tipo</th>
                     <th className="text-left py-3 px-2 text-xs font-semibold text-muted-foreground"><CircleDot className="h-3.5 w-3.5 inline mr-1" />Status</th>
                     <th className="text-right py-3 px-2 text-xs font-semibold text-muted-foreground"><Settings className="h-3.5 w-3.5 inline mr-1" />Ações</th>
@@ -715,20 +742,22 @@ export default function Dashboard() {
                   {recentRequests.map((request, index) => (
                     <tr 
                       key={request.id} 
-                      className={`border-b border-border/50 hover:bg-muted/50 transition-colors ${index % 2 === 0 ? 'bg-muted/20' : ''}`}
+                      className="border-b border-border/50 hover:bg-muted/50 transition-all duration-200 animate-fade-in cursor-pointer"
+                      style={{ animationDelay: `${index * 0.05 + 0.6}s` }}
+                      onClick={() => navigate(`/solicitacoes?protocol=${request.protocol}`)}
                     >
                       <td className="py-3 px-2 text-sm text-muted-foreground">
                         {format(new Date(request.created_at), "dd/MM/yy", { locale: ptBR })}
                       </td>
                       <td className="py-3 px-2">
-                        <span className="font-bold font-mono text-sm text-primary">{request.protocol}</span>
+                        <span className="font-bold font-mono text-sm text-primary hover:underline">{request.protocol}</span>
                       </td>
                       <td className="py-3 px-2 text-sm">{request.profile?.full_name || 'N/A'}</td>
-                      <td className="py-3 px-2 text-sm text-muted-foreground">{request.profile?.unit?.name || '-'}</td>
+                      <td className="py-3 px-2 text-sm text-muted-foreground hidden md:table-cell">{request.profile?.unit?.name || '-'}</td>
                       <td className="py-3 px-2">
                         <div className="inline-flex items-center gap-2 text-sm">
                           <BenefitIcon type={request.benefit_type as BenefitType} size="lg" />
-                          <span className="hidden md:inline">{benefitTypeLabels[request.benefit_type as BenefitType]}</span>
+                          <span className="hidden lg:inline">{benefitTypeLabels[request.benefit_type as BenefitType]}</span>
                         </div>
                       </td>
                       <td className="py-3 px-2">
@@ -741,8 +770,11 @@ export default function Dashboard() {
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-8 w-8"
-                          onClick={() => navigate(`/solicitacoes?protocol=${request.protocol}`)}
+                          className="h-8 w-8 hover:bg-info/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/solicitacoes?protocol=${request.protocol}`);
+                          }}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -754,6 +786,16 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Footer with last update info */}
+        <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground py-2 animate-fade-in" style={{ animationDelay: '0.7s' }}>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
+            <span>Dados em tempo real</span>
+          </div>
+          <span>•</span>
+          <span>Última atualização: {format(lastUpdated, "HH:mm:ss", { locale: ptBR })}</span>
+        </div>
       </div>
     </MainLayout>
   );
