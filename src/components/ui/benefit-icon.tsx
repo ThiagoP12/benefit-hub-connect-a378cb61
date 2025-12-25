@@ -16,7 +16,7 @@ const sizeClasses = {
 };
 
 export function BenefitIcon({ type, size = 'md', className }: BenefitIconProps) {
-  const sizeClass = sizeClasses[size];
+  const sizeClass = cn(sizeClasses[size], 'transition-transform duration-200 hover:scale-110 cursor-pointer');
 
   const icons: Record<BenefitType, JSX.Element> = {
     autoescola: (
