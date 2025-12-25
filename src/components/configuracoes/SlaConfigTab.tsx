@@ -23,6 +23,7 @@ interface ApprovalCutoff {
 }
 
 const benefitTypes: BenefitType[] = [
+  // Atividades do DP
   'alteracao_ferias',
   'aviso_folga_falta',
   'atestado',
@@ -32,6 +33,13 @@ const benefitTypes: BenefitType[] = [
   'operacao_domingo',
   'relatorio_ponto',
   'outros',
+  // Convênios
+  'autoescola',
+  'farmacia',
+  'oficina',
+  'vale_gas',
+  'papelaria',
+  'otica',
 ];
 
 export function SlaConfigTab() {

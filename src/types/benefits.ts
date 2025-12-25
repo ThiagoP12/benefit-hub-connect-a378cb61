@@ -1,5 +1,6 @@
 // Alinhado com os enums do banco de dados Supabase
-export type BenefitType = 
+// Atividades do DP
+export type DPActivityType = 
   | 'alteracao_ferias'
   | 'aviso_folga_falta'
   | 'atestado'
@@ -9,6 +10,18 @@ export type BenefitType =
   | 'operacao_domingo'
   | 'relatorio_ponto'
   | 'outros';
+
+// Convênios
+export type ConvenioType =
+  | 'autoescola'
+  | 'farmacia'
+  | 'oficina'
+  | 'vale_gas'
+  | 'papelaria'
+  | 'otica';
+
+// Tipo combinado (usado no banco de dados)
+export type BenefitType = DPActivityType | ConvenioType;
 
 export type BenefitStatus = 'aberta' | 'em_analise' | 'aprovada' | 'recusada' | 'concluida';
 
@@ -66,7 +79,8 @@ export interface Log {
   created_at: string;
 }
 
-export const benefitTypeLabels: Record<BenefitType, string> = {
+// Labels para atividades do DP
+export const dpActivityLabels: Record<DPActivityType, string> = {
   alteracao_ferias: 'Alteração de Férias',
   aviso_folga_falta: 'Aviso Folga/Falta',
   atestado: 'Atestado Médico',
@@ -78,7 +92,24 @@ export const benefitTypeLabels: Record<BenefitType, string> = {
   outros: 'Outros',
 };
 
-export const benefitTypeEmojis: Record<BenefitType, string> = {
+// Labels para convênios
+export const convenioLabels: Record<ConvenioType, string> = {
+  autoescola: 'Autoescola',
+  farmacia: 'Farmácia',
+  oficina: 'Oficina',
+  vale_gas: 'Vale Gás',
+  papelaria: 'Papelaria',
+  otica: 'Ótica',
+};
+
+// Labels combinados (todos os tipos)
+export const benefitTypeLabels: Record<BenefitType, string> = {
+  ...dpActivityLabels,
+  ...convenioLabels,
+};
+
+// Emojis para atividades do DP
+export const dpActivityEmojis: Record<DPActivityType, string> = {
   alteracao_ferias: '🏖️',
   aviso_folga_falta: '📋',
   atestado: '🏥',
@@ -89,6 +120,44 @@ export const benefitTypeEmojis: Record<BenefitType, string> = {
   relatorio_ponto: '📊',
   outros: '📦',
 };
+
+// Emojis para convênios
+export const convenioEmojis: Record<ConvenioType, string> = {
+  autoescola: '🚗',
+  farmacia: '💊',
+  oficina: '🔧',
+  vale_gas: '⛽',
+  papelaria: '📚',
+  otica: '👓',
+};
+
+// Emojis combinados
+export const benefitTypeEmojis: Record<BenefitType, string> = {
+  ...dpActivityEmojis,
+  ...convenioEmojis,
+};
+
+// Listas de tipos
+export const dpActivityTypes: DPActivityType[] = [
+  'alteracao_ferias',
+  'aviso_folga_falta',
+  'atestado',
+  'contracheque',
+  'abono_horas',
+  'alteracao_horario',
+  'operacao_domingo',
+  'relatorio_ponto',
+  'outros',
+];
+
+export const convenioTypes: ConvenioType[] = [
+  'autoescola',
+  'farmacia',
+  'oficina',
+  'vale_gas',
+  'papelaria',
+  'otica',
+];
 
 export const statusLabels: Record<BenefitStatus, string> = {
   aberta: 'Aberto',
@@ -105,19 +174,18 @@ export const statusFilterLabels: Record<Exclude<BenefitStatus, 'concluida'>, str
   recusada: 'Reprovado',
 };
 
-export const benefitTypeFilterLabels: Record<Exclude<BenefitType, 'outros'>, string> = {
-  alteracao_ferias: 'Alteração de Férias',
-  aviso_folga_falta: 'Aviso Folga/Falta',
-  atestado: 'Atestado Médico',
-  contracheque: 'Contracheque',
-  abono_horas: 'Abono de Horas',
-  alteracao_horario: 'Alteração de Horário',
-  operacao_domingo: 'Operação Domingo',
-  relatorio_ponto: 'Relatório de Ponto',
-};
-
 export const roleLabels: Record<UserRole, string> = {
   colaborador: 'Colaborador',
   gestor: 'Gestor',
   admin: 'Administrador',
+};
+
+// Helper para identificar se é convênio
+export const isConvenio = (type: BenefitType): type is ConvenioType => {
+  return convenioTypes.includes(type as ConvenioType);
+};
+
+// Helper para identificar se é atividade do DP
+export const isDPActivity = (type: BenefitType): type is DPActivityType => {
+  return dpActivityTypes.includes(type as DPActivityType);
 };
