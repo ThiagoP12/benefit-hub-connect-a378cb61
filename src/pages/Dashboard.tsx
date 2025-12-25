@@ -499,7 +499,6 @@ export default function Dashboard() {
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground flex items-center gap-2">
               <LayoutDashboard className="h-6 w-6 sm:h-7 sm:w-7 text-primary" />
               Dashboard
-              <span className="hidden sm:inline"> - Revalle Gestão do DP</span>
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
               <span className="hidden sm:inline">Acompanhamento em tempo real das solicitações e análises do DP</span>
