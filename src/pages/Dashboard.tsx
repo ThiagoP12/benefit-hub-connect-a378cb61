@@ -724,8 +724,8 @@ export default function Dashboard() {
                       <td className="py-3 px-2 text-sm">{request.profile?.full_name || 'N/A'}</td>
                       <td className="py-3 px-2 text-sm text-muted-foreground">{request.profile?.unit?.name || '-'}</td>
                       <td className="py-3 px-2">
-                        <span className="inline-flex items-center gap-1 text-sm">
-                          {benefitTypeEmojis[request.benefit_type as BenefitType]}
+                        <span className="inline-flex items-center gap-2 text-sm">
+                          <span className="text-xl">{benefitTypeEmojis[request.benefit_type as BenefitType]}</span>
                           <span className="hidden md:inline">{benefitTypeLabels[request.benefit_type as BenefitType]}</span>
                         </span>
                       </td>

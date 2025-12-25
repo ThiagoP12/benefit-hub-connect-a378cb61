@@ -34,7 +34,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { Search, Eye, CalendarIcon, X, Filter, RefreshCw, PauseCircle, Download, FileSpreadsheet, Building2, FileText, CircleDot, Package } from 'lucide-react';
+import { Search, Eye, CalendarIcon, X, Filter, RefreshCw, PauseCircle, Download, FileSpreadsheet, Building2, FileText, CircleDot, Package, Hash, User, Clock, Settings } from 'lucide-react';
 import { exportToExcel, formatDateForExport, ExportColumn } from '@/lib/exportUtils';
 import { toast } from 'sonner';
 import {
@@ -548,14 +548,14 @@ export default function Solicitacoes() {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/50">
-                <TableHead className="font-semibold">📅 Data</TableHead>
-                <TableHead className="font-semibold">🔢 Protocolo</TableHead>
-                <TableHead className="font-semibold">👤 Colaborador</TableHead>
-                <TableHead className="font-semibold">🏢 Unidade</TableHead>
-                <TableHead className="font-semibold">📦 Tipo</TableHead>
-                <TableHead className="font-semibold">⏱️ SLA</TableHead>
-                <TableHead className="font-semibold">📊 Status</TableHead>
-                <TableHead className="text-right font-semibold">⚙️ Ações</TableHead>
+                <TableHead className="font-semibold"><CalendarIcon className="h-3.5 w-3.5 inline mr-1" />Data</TableHead>
+                <TableHead className="font-semibold"><Hash className="h-3.5 w-3.5 inline mr-1" />Protocolo</TableHead>
+                <TableHead className="font-semibold"><User className="h-3.5 w-3.5 inline mr-1" />Colaborador</TableHead>
+                <TableHead className="font-semibold"><Building2 className="h-3.5 w-3.5 inline mr-1" />Unidade</TableHead>
+                <TableHead className="font-semibold"><Package className="h-3.5 w-3.5 inline mr-1" />Tipo</TableHead>
+                <TableHead className="font-semibold"><Clock className="h-3.5 w-3.5 inline mr-1" />SLA</TableHead>
+                <TableHead className="font-semibold"><CircleDot className="h-3.5 w-3.5 inline mr-1" />Status</TableHead>
+                <TableHead className="text-right font-semibold"><Settings className="h-3.5 w-3.5 inline mr-1" />Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -598,8 +598,8 @@ export default function Solicitacoes() {
                       {request.profile?.unit?.name || '-'}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-lg">{benefitTypeEmojis[request.benefit_type]}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">{benefitTypeEmojis[request.benefit_type]}</span>
                         <span className="hidden sm:inline text-sm">{benefitTypeLabels[request.benefit_type]}</span>
                       </div>
                     </TableCell>
