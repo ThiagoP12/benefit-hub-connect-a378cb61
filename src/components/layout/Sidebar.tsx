@@ -15,6 +15,7 @@ import {
   Sun,
   UserCog,
   ClipboardList,
+  BarChart3,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -43,6 +44,12 @@ const navigation: NavItem[] = [
     icon: FileText,
     showOpenCount: true,
     allowedRoles: ['admin', 'gestor', 'agente_dp']
+  },
+  {
+    name: 'Atendimentos',
+    href: '/dashboard-agentes',
+    icon: BarChart3,
+    allowedRoles: ['admin', 'gestor']
   },
   {
     name: 'Colaboradores',

@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
+import DashboardAgentes from "./pages/DashboardAgentes";
 import Solicitacoes from "./pages/Solicitacoes";
 import Colaboradores from "./pages/Colaboradores";
 import Unidades from "./pages/Unidades";
@@ -37,6 +38,11 @@ const App = () => (
               <Route path="/solicitacoes" element={
                 <ProtectedRoute allowedRoles={['admin', 'gestor', 'agente_dp']}>
                   <Solicitacoes />
+                </ProtectedRoute>
+              } />
+              <Route path="/dashboard-agentes" element={
+                <ProtectedRoute allowedRoles={['admin', 'gestor']}>
+                  <DashboardAgentes />
                 </ProtectedRoute>
               } />
               <Route path="/colaboradores" element={
