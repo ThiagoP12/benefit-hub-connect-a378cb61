@@ -47,17 +47,20 @@ export function BenefitIcon({ type, size = 'md', className }: BenefitIconProps) 
     oficina: (
       <svg viewBox="0 0 24 24" fill="none" className={cn(sizeClass, className)}>
         <circle cx="12" cy="12" r="11" fill="#F59E0B" fillOpacity="0.15" />
-        {/* Chave de boca */}
+        {/* Chave inglesa */}
         <path
-          d="M7.5 9C6.67 9 6 8.33 6 7.5C6 6.67 6.67 6 7.5 6C8.1 6 8.6 6.36 8.82 6.88L14.5 12.5L17.12 9.88C17.36 9.64 17.36 9.24 17.12 9L15 6.88C14.76 6.64 14.76 6.24 15 6L15.88 5.12C16.12 4.88 16.52 4.88 16.76 5.12L19.88 8.24C20.12 8.48 20.12 8.88 19.88 9.12L12.5 16.5L8.82 12.82C8.6 13.34 8.1 13.7 7.5 13.7C6.67 13.7 6 13.03 6 12.2C6 11.37 6.67 10.7 7.5 10.7"
+          d="M14.5 6.5C15.88 6.5 17 7.62 17 9C17 9.79 16.64 10.5 16.08 11L11 16.08C10.5 16.64 9.79 17 9 17C7.62 17 6.5 15.88 6.5 14.5C6.5 13.71 6.86 13 7.42 12.5L12.5 7.42C13 6.86 13.71 6.5 14.5 6.5Z"
           fill="#F59E0B"
         />
         <path
-          d="M6 16L8 18M8 16L6 18"
+          d="M16.5 7.5L18 6M18 6L17 5M18 6L19 7"
           stroke="#F59E0B"
           strokeWidth="1.5"
           strokeLinecap="round"
+          strokeLinejoin="round"
         />
+        <circle cx="14.5" cy="9" r="1.5" fill="white" fillOpacity="0.8" />
+        <circle cx="9" cy="14.5" r="1.5" fill="white" fillOpacity="0.8" />
       </svg>
     ),
     vale_gas: (
