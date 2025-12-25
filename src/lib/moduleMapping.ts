@@ -1,6 +1,7 @@
 // Mapeamento de módulos para benefit_types
 export const MODULE_MAPPING: Record<string, string[]> = {
-  'convenios': ['autoescola', 'farmacia', 'oficina', 'vale_gas', 'papelaria', 'otica', 'plano_odontologico', 'plano_saude', 'vale_transporte'],
+  'convenios': ['autoescola', 'farmacia', 'oficina', 'vale_gas', 'papelaria', 'otica'],
+  'beneficios': ['plano_odontologico', 'plano_saude', 'vale_transporte'],
   'alteracao_ferias': ['alteracao_ferias'],
   'alteracao_horario': ['alteracao_horario'],
   'atestado': ['atestado'],
@@ -14,6 +15,7 @@ export const MODULE_MAPPING: Record<string, string[]> = {
 // Opções de módulos para o formulário
 export const MODULE_OPTIONS = [
   { value: 'convenios', label: 'Convênios', icon: '🏪' },
+  { value: 'beneficios', label: 'Benefícios', icon: '🏥' },
   { value: 'alteracao_ferias', label: 'Alteração de Férias', icon: '🏖️' },
   { value: 'alteracao_horario', label: 'Alteração de Horário', icon: '⏰' },
   { value: 'atestado', label: 'Atestado', icon: '📋' },

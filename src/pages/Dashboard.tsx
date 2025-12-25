@@ -798,8 +798,8 @@ export default function Dashboard() {
               </Card>
             )}
 
-            {/* 6. Benefícios Card - Collapsible Trigger (uses convenios permission since they're related) */}
-            {checkModuleAccess('convenios') && (
+            {/* 6. Benefícios Card - Collapsible Trigger */}
+            {checkModuleAccess('beneficios') && (
               <Card 
                 className={cn(
                   "border-border/50 cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] group w-fit animate-fade-in",
@@ -928,7 +928,7 @@ export default function Dashboard() {
           )}
 
           {/* Expanded Content - Benefícios (appears below all cards) */}
-          {checkModuleAccess('convenios') && (
+          {checkModuleAccess('beneficios') && (
             <Collapsible open={beneficiosOpen} onOpenChange={setBeneficiosOpen}>
               <CollapsibleContent className="animate-fade-in">
                 <BeneficioBenefitTypeCards data={beneficioBenefitTypeData} total={beneficioBenefitTypeData.reduce((sum, item) => sum + item.count, 0)} />

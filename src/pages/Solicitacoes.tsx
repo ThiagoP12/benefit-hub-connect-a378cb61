@@ -572,7 +572,7 @@ export default function Solicitacoes() {
                 {checkModuleAccess('alteracao_horario') && <SelectItem value="alteracao_horario">🕐 Alteração de Horário</SelectItem>}
                 {checkModuleAccess('atestado') && <SelectItem value="atestado">🏥 Atestado</SelectItem>}
                 {checkModuleAccess('aviso_folga_falta') && <SelectItem value="aviso_folga_falta">📋 Aviso Folga/Falta</SelectItem>}
-                {checkModuleAccess('convenios') && <SelectItem value="beneficios">💼 Benefícios</SelectItem>}
+                {checkModuleAccess('beneficios') && <SelectItem value="beneficios">🏥 Benefícios</SelectItem>}
                 {checkModuleAccess('contracheque') && <SelectItem value="contracheque">💰 Contracheque</SelectItem>}
                 {checkModuleAccess('relatorio_ponto') && <SelectItem value="relatorio_ponto">📊 Relatório de Ponto</SelectItem>}
                 {checkModuleAccess('relato_anomalia') && <SelectItem value="relato_anomalia">⚠️ Relato de Anomalia</SelectItem>}
