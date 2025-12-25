@@ -8,7 +8,13 @@ import {
   RefreshCw, 
   Calendar, 
   FileBarChart, 
-  Package 
+  Package,
+  Car,
+  Pill,
+  Wrench,
+  Flame,
+  BookOpen,
+  Glasses
 } from 'lucide-react';
 
 export type BenefitType = 
@@ -20,7 +26,13 @@ export type BenefitType =
   | 'alteracao_horario'
   | 'operacao_domingo'
   | 'relatorio_ponto'
-  | 'outros';
+  | 'outros'
+  | 'autoescola'
+  | 'farmacia'
+  | 'oficina'
+  | 'vale_gas'
+  | 'papelaria'
+  | 'otica';
 
 interface BenefitIconProps {
   type: BenefitType;
@@ -43,6 +55,7 @@ const iconSizes = {
 };
 
 const iconConfig: Record<BenefitType, { icon: typeof CalendarDays; bgColor: string; iconColor: string }> = {
+  // Atividades do DP
   alteracao_ferias: {
     icon: CalendarDays,
     bgColor: 'bg-blue-500/15 dark:bg-blue-400/20',
@@ -88,6 +101,37 @@ const iconConfig: Record<BenefitType, { icon: typeof CalendarDays; bgColor: stri
     bgColor: 'bg-gray-500/15 dark:bg-gray-400/20',
     iconColor: 'text-gray-600 dark:text-gray-400',
   },
+  // Convênios
+  autoescola: {
+    icon: Car,
+    bgColor: 'bg-sky-500/15 dark:bg-sky-400/20',
+    iconColor: 'text-sky-600 dark:text-sky-400',
+  },
+  farmacia: {
+    icon: Pill,
+    bgColor: 'bg-teal-500/15 dark:bg-teal-400/20',
+    iconColor: 'text-teal-600 dark:text-teal-400',
+  },
+  oficina: {
+    icon: Wrench,
+    bgColor: 'bg-yellow-500/15 dark:bg-yellow-400/20',
+    iconColor: 'text-yellow-600 dark:text-yellow-400',
+  },
+  vale_gas: {
+    icon: Flame,
+    bgColor: 'bg-rose-500/15 dark:bg-rose-400/20',
+    iconColor: 'text-rose-600 dark:text-rose-400',
+  },
+  papelaria: {
+    icon: BookOpen,
+    bgColor: 'bg-purple-500/15 dark:bg-purple-400/20',
+    iconColor: 'text-purple-600 dark:text-purple-400',
+  },
+  otica: {
+    icon: Glasses,
+    bgColor: 'bg-fuchsia-500/15 dark:bg-fuchsia-400/20',
+    iconColor: 'text-fuchsia-600 dark:text-fuchsia-400',
+  },
 };
 
 export function BenefitIcon({ type, size = 'md', className }: BenefitIconProps) {
@@ -110,6 +154,7 @@ export function BenefitIcon({ type, size = 'md', className }: BenefitIconProps) 
 }
 
 export const benefitIconColors: Record<BenefitType, string> = {
+  // Atividades do DP
   alteracao_ferias: '#3B82F6',
   aviso_folga_falta: '#F59E0B',
   atestado: '#10B981',
@@ -119,4 +164,11 @@ export const benefitIconColors: Record<BenefitType, string> = {
   operacao_domingo: '#EF4444',
   relatorio_ponto: '#6366F1',
   outros: '#6B7280',
+  // Convênios
+  autoescola: '#0EA5E9',
+  farmacia: '#14B8A6',
+  oficina: '#EAB308',
+  vale_gas: '#F43F5E',
+  papelaria: '#A855F7',
+  otica: '#D946EF',
 };

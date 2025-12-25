@@ -16,6 +16,7 @@ interface BenefitTypeCardsProps {
 }
 
 const cardStyles: Record<BenefitType, string> = {
+  // Atividades do DP
   alteracao_ferias: 'hover:border-blue-500/50 hover:bg-blue-500/5',
   aviso_folga_falta: 'hover:border-amber-500/50 hover:bg-amber-500/5',
   atestado: 'hover:border-emerald-500/50 hover:bg-emerald-500/5',
@@ -25,6 +26,13 @@ const cardStyles: Record<BenefitType, string> = {
   operacao_domingo: 'hover:border-red-500/50 hover:bg-red-500/5',
   relatorio_ponto: 'hover:border-indigo-500/50 hover:bg-indigo-500/5',
   outros: 'hover:border-gray-500/50 hover:bg-gray-500/5',
+  // Convênios
+  autoescola: 'hover:border-sky-500/50 hover:bg-sky-500/5',
+  farmacia: 'hover:border-teal-500/50 hover:bg-teal-500/5',
+  oficina: 'hover:border-yellow-500/50 hover:bg-yellow-500/5',
+  vale_gas: 'hover:border-rose-500/50 hover:bg-rose-500/5',
+  papelaria: 'hover:border-purple-500/50 hover:bg-purple-500/5',
+  otica: 'hover:border-fuchsia-500/50 hover:bg-fuchsia-500/5',
 };
 
 export function BenefitTypeCards({ data, total }: BenefitTypeCardsProps) {

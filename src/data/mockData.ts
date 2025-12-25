@@ -1,7 +1,7 @@
 // This file contains helper functions for dashboard statistics
 // Data is now primarily fetched from Supabase
 
-import { BenefitType, BenefitStatus } from '@/types/benefits';
+import { BenefitType, BenefitStatus, DPActivityType, ConvenioType, dpActivityTypes, convenioTypes } from '@/types/benefits';
 
 // Helper types for dashboard
 export interface DashboardStats {
@@ -46,18 +46,8 @@ export const getMonthlyData = (): MonthlyData[] => {
   }));
 };
 
-// Benefit types list (aligned with database enums)
-export const benefitTypes: BenefitType[] = [
-  'alteracao_ferias',
-  'aviso_folga_falta',
-  'atestado',
-  'contracheque',
-  'abono_horas',
-  'alteracao_horario',
-  'operacao_domingo',
-  'relatorio_ponto',
-  'outros',
-];
+// Export lists
+export const benefitTypes: BenefitType[] = [...dpActivityTypes, ...convenioTypes];
 
 // Status list (sem concluida na UI)
 export const statuses: BenefitStatus[] = ['aberta', 'em_analise', 'aprovada', 'recusada'];
